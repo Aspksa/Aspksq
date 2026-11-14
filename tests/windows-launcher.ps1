@@ -55,7 +55,7 @@ try {
         $script:LogPath = Join-Path $temporary 'install.log'
         $installed = Install-LocalPython -TargetDirectory (Join-Path $temporary "Python (локальный) & ! 100% О'Брайен [тест]")
         Assert-True ([bool](Test-PythonCandidate -Executable $installed)) 'Automatic user-scope Python installation failed.'
-        Write-Host 'PASS: official Python download, signature and installation with Unicode/special characters.'
+        Write-Host ('PASS: official Python download, signature and usable installation: ' + $installed)
     }
 
     $project = Join-Path $temporary "Русский путь (скобки) & ! 100% О'Брайен [тест]"
@@ -96,9 +96,11 @@ try {
     $skill = Invoke-RestMethod -Uri ($url + 'api/skills') -Method Post -Body $body -ContentType 'application/json; charset=utf-8'
     Assert-True ($skill.name -eq "Русский навык (тест) & ! % ' [1]") 'Russian text did not round-trip.'
     $duplicate = Start-Process -FilePath $env:ComSpec -ArgumentList $arguments -PassThru -RedirectStandardOutput (Join-Path $temporary 'duplicate.out') -RedirectStandardError (Join-Path $temporary 'duplicate.err')
+    # Keep the native handle before exit: Start-Process otherwise loses ExitCode on PowerShell 5.1.
+    $duplicateHandle = $duplicate.Handle
     Assert-True ($duplicate.WaitForExit(30000)) 'Repeated BAT did not exit.'
     $duplicate.Refresh()
-    Assert-True ($duplicate.ExitCode -eq 0) 'Repeated BAT failed.'
+    Assert-True ($duplicate.ExitCode -eq 0) ('Repeated BAT failed. Exit=' + $duplicate.ExitCode + '; stdout=' + [IO.File]::ReadAllText((Join-Path $temporary 'duplicate.out')) + '; stderr=' + [IO.File]::ReadAllText((Join-Path $temporary 'duplicate.err')) + '; log=' + [IO.File]::ReadAllText((Join-Path $project 'data\launcher.log')))
     $after = Invoke-RestMethod -Uri ($url + 'api/status') -TimeoutSec 2
     Assert-True ($after.instance_id -eq $info.instance_id) 'Repeated BAT started a different server.'
     Write-Host 'PASS: actual BAT with Cyrillic, spaces, parentheses, &, !, %, apostrophe and brackets; occupied port; duplicate launch; Russian SQLite data.'
