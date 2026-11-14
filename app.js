@@ -291,25 +291,71 @@
     e.classList.add(type==="file"?"file-node":"group-node");
     e.setAttribute("data-name",p.name);
     if(!matchSearch(p.name))e.setAttribute("opacity",".09");
-    var title=svg("title",{},e,p.name);
+    svg("title",{},e,p.name);
+    e.addEventListener("pointerenter",function(ev){
+      if(drag||dragged)return;
+      showDetails(ev,p);
+      drawHoverLinks(e,p);
+    });
+    e.addEventListener("pointermove",function(ev){
+      if(drag||dragged)return;
+      showDetails(ev,p);
+    });
+    e.addEventListener("pointerleave",function(){
+      if(!drag&&!dragged){hideDetails();clearHoverLinks();}
+    });
     e.addEventListener("click",function(ev){
       if(dragged)return;
       ev.stopPropagation();
-      state.selected=p;
-      showDetails(ev,p);
+      state.focus=state.focus===p.name?null:p.name;
+      state.search="";
+      $("fileSearch").value="";
+      renderBrain();
+      $("canvasHint").textContent=state.focus?
+        "ФИЛЬТР: "+state.focus.toUpperCase()+" · ESC — СНЯТЬ ФИЛЬТР":
+        "ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";
     });
     return e;
   }
+  function nodeCoords(el){
+    var a=Number(el.getAttribute("cx")),b=Number(el.getAttribute("cy"));
+    if(Number.isFinite(a)&&Number.isFinite(b))return [a,b];
+    var rect=el.getBBox();
+    return [rect.x+rect.width/2,rect.y+rect.height/2];
+  }
+  function clearHoverLinks(){
+    var e=$("hoverLinks");if(e)e.remove();
+  }
+  function drawHoverLinks(element,p){
+    clearHoverLinks();
+    if(state.layout==="hex")return;
+    var parent=$("mapViewport"),overlay=svg("g",{id:"hoverLinks",class:"hover-links","pointer-events":"none"},parent);
+    var start=nodeCoords(element),all=Array.from(parent.querySelectorAll(".file-node, .group-node")).filter(function(el){return el!==element;});
+    var related=all.filter(function(el){return el.getAttribute("data-name")===p.name;});
+    var seed=projects.findIndex(function(proj){return proj.name===p.name;});
+    if(seed<0)seed=0;
+    var additional=all.filter(function(el,i){return i%(3+seed%4)===seed%3;}).slice(0,26);
+    var targets=related.concat(additional.filter(function(el){return !related.includes(el);}));
+    if(targets.length>32)targets=targets.slice(0,32);
+    targets.forEach(function(el,i){
+      var end=nodeCoords(el);
+      if(Math.hypot(end[0]-start[0],end[1]-start[1])<15)return;
+      drawLine(overlay,start,end,accent((p.color||0)+i%3),.85+i%4*.22,.36+i%4*.13);
+      drawCircle(overlay,end[0],end[1],i%5===0?2.7:1.4,accent(p.color||0),"none",0,.75);
+    });
+    element.parentNode.appendChild(element);
+  }
   function showDetails(ev,p){
-    var box=$("mapTooltip"),rect=$("brainSvg").getBoundingClientRect(),canvas=$("brainPage").getBoundingClientRect();
+    var box=$("mapTooltip"),rect=$("brainSvg").getBoundingClientRect();
     box.textContent="";
     var h=dom("strong","",undefined,box),dot=dom("i","tip-dot",undefined,h);
     dot.style.background=accent(p.color||0);h.appendChild(document.createTextNode(p.name));
-    dom("small","",String(p.files||30)+ " файлов · "+(state.view==="departments"?"отдел":"папка"),box);
-    dom("small","", "Нажмите, чтобы отфильтровать по узлу",box);
-    var x=ev.clientX-canvas.left+12,y=ev.clientY-canvas.top+12;
-    x=clamp(x,10,Math.max(10,rect.width-box.offsetWidth-30));
-    y=clamp(y,8,Math.max(8,rect.height-105));
+    var label=p.name==="CLAUDE.MD"?"центральный файл":state.view==="departments"?"отдел":"папка";
+    dom("small","",String(p.files||30)+" файлов · "+label,box);
+    dom("small","",state.focus===p.name?"НАЖМИТЕ, ЧТОБЫ СНЯТЬ ФИЛЬТР":"НАЖМИТЕ, ЧТОБЫ ОТФИЛЬТРОВАТЬ",box);
+    var x=ev.clientX-rect.left+13,y=ev.clientY-rect.top+13;
+    x=clamp(x,10,Math.max(10,rect.width-240));
+    y=clamp(y,8,Math.max(8,rect.height-100));
     box.style.left=x+"px";box.style.top=y+"px";box.classList.remove("hidden");
   }
   function hideDetails(){$("mapTooltip").classList.add("hidden");state.selected=null;}
