@@ -60,6 +60,7 @@
     zoom:1,panX:0,panY:0,search:"",hud:false,plaque:false,selected:null,focus:null
   };
   var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
+  var databaseSkills = [], databaseClients = null, databaseProjects = null, databaseRoutines = null, authMode = "signin";
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
     return x - Math.floor(x);
@@ -83,6 +84,33 @@
   }
   function theme(){return themes.find(function(t){return t.name===state.theme;})||themes[2];}
   function accent(i){return theme().colors[((i%theme().colors.length)+theme().colors.length)%theme().colors.length];}
+  function currentAccounts(){
+    if(!databaseClients||!databaseClients.length)return accounts;
+    return databaseClients.map(function(c){
+      var amount=c.monthly_fee===null||c.monthly_fee===undefined?"":Number(c.monthly_fee).toLocaleString("ru-RU");
+      var status=c.status==="attention"?"red":c.status==="active"?"green":"grey";
+      var row=[c.name,amount,c.description||"Сопровождение",status];row.source="database";return row;
+    });
+  }
+  function currentProjects(){
+    if(!databaseProjects||!databaseProjects.length)return projects;
+    return databaseProjects.map(function(p){return {name:p.name,files:Number(p.file_count)||0,color:Number(p.color_index)||0};});
+  }
+  function currentRoutines(){
+    if(!databaseRoutines||!databaseRoutines.length)return [
+      ["19:00","Проверка кредитного лимита","ТРЕКТОР · ПРОВЕРКА","СЛЕДУЮЩИЙ",true],
+      ["19:25","Поиск рабочего номера","УТИЛИТА · ВЫЗОВ","В ОЧЕРЕДИ",false],
+      ["20:30","Запросить номер у владельца","COBRA_RODIZIO · DOCKER","В ОЧЕРЕДИ",false],
+      ["23:40","Обновить панель данных","UPDATE-DATA · ОПЕРАЦИЯ","ЗАПЛАНИРОВАН",false],
+      ["04:10","Обновление CRM","АВТОМАТИЗАЦИЯ · СИСТЕМА","ЗАПЛАНИРОВАН",false],
+      ["06:00","Отчёт по рекламным кампаниям","РАБОЧИЕ ЗАДАЧИ","ЗАПЛАНИРОВАН",false]
+    ];
+    return databaseRoutines.map(function(r){
+      var date=r.scheduled_at?new Date(r.scheduled_at):null;
+      var time=date&&!isNaN(date.getTime())?new Intl.DateTimeFormat("ru-RU",{hour:"2-digit",minute:"2-digit",hour12:false}).format(date):"—";
+      return [time,r.title,r.detail||"РАБОЧИЙ ПРОЦЕСС",r.status||"В ОЧЕРЕДИ",Boolean(r.is_next)];
+    });
+  }
   function notify(message){
     var toast=$("toast");toast.textContent=message;toast.classList.remove("hidden");
     clearTimeout(timerToast);timerToast=setTimeout(function(){toast.classList.add("hidden");},2600);
@@ -156,6 +184,7 @@
     previousClientFocus=document.activeElement;
     selectedClient=account;
     $("clientModalTitle").textContent=account[0];
+    $("clientModalNote").textContent=account.source==="database"?"Данные клиента загружены из PostgreSQL.":"Демонстрационная карточка по данным из видеозаписи. Подключение к CRM не настроено.";
     var holder=$("clientModalFields");holder.textContent="";
     var fields=[
       ["ОПЛАТА В МЕСЯЦ",account[1]?"R$ "+account[1]:"Не указана"],
@@ -191,7 +220,7 @@
   }
   function renderWallet(){
     var holder=$("walletList");holder.textContent="";
-    accounts.forEach(function(a,i){
+    currentAccounts().forEach(function(a,i){
       var row=dom("div","wallet-item",undefined,holder);
       dom("span","wallet-dot",undefined,row);
       var block=dom("span","wallet-client",undefined,row);
@@ -240,29 +269,25 @@
   function renderSkills(){
     var holder=$("skillsGrid");if(!holder)return;
     holder.textContent="";
-    var skills=["/оптимизация-аккаунта","/отчёт-в-3-шага","/панель-кампаний","/цикл-креативов"];
-    skills.forEach(function(name){
+    var skills=[
+      {name:"/оптимизация-аккаунта",meta:"SONNET · СРЕДНИЙ",custom:false},
+      {name:"/отчёт-в-3-шага",meta:"SONNET · СРЕДНИЙ",custom:false},
+      {name:"/панель-кампаний",meta:"SONNET · СРЕДНИЙ",custom:false},
+      {name:"/цикл-креативов",meta:"SONNET · СРЕДНИЙ",custom:false}
+    ].concat(databaseSkills.map(function(s){return {name:s.name,meta:(s.model||"SONNET")+" · "+(s.mode||"СРЕДНИЙ"),description:s.description||"",custom:true};}));
+    skills.forEach(function(skill){
       var card=dom("div","skill-card",undefined,holder);
-      dom("div","skill-name",name,card);
-      dom("div","skill-meta","SONNET · СРЕДНИЙ",card);
+      dom("div","skill-name",skill.name,card);dom("div","skill-meta",skill.meta,card);
       var actions=dom("div","skill-controls",undefined,card);
       var run=dom("button","", "▶",actions),more=dom("button","skill-more","◌",actions);
-      run.type="button";run.title="Запустить навык";
-      more.type="button";more.title="Информация о навыке";
-      run.addEventListener("click",function(){notify("Демо: для запуска "+name+" нужен сервер оригинала");});
-      more.addEventListener("click",function(){notify("Навык "+name+" · модель SONNET · режим «Средний»");});
+      run.type="button";run.title="Запустить навык";more.type="button";more.title="Информация о навыке";
+      run.addEventListener("click",function(){notify(skill.custom?"Навык сохранён в базе. Для выполнения нужен исполнитель":"Демо: для запуска "+skill.name+" нужен сервер оригинала");});
+      more.addEventListener("click",function(){notify(skill.description||("Навык "+skill.name+" · "+skill.meta));});
     });
   }
   function renderRoutines(){
     var holder=$("routineList");if(!holder)return;holder.textContent="";
-    var routines=[
-      ["19:00","Проверка кредитного лимита","ТРЕКТОР · ПРОВЕРКА","СЛЕДУЮЩИЙ",true],
-      ["19:25","Поиск рабочего номера","УТИЛИТА · ВЫЗОВ","В ОЧЕРЕДИ",false],
-      ["20:30","Запросить номер у владельца","COBRA_RODIZIO · DOCKER","В ОЧЕРЕДИ",false],
-      ["23:40","Обновить панель данных","UPDATE-DATA · ОПЕРАЦИЯ","ЗАПЛАНИРОВАН",false],
-      ["04:10","Обновление CRM","АВТОМАТИЗАЦИЯ · СИСТЕМА","ЗАПЛАНИРОВАН",false],
-      ["06:00","Отчёт по рекламным кампаниям","РАБОЧИЕ ЗАДАЧИ","ЗАПЛАНИРОВАН",false]
-    ];
+    var routines=currentRoutines();
     routines.forEach(function(r){
       var row=dom("div","routine-row"+(r[4]?" next":""),undefined,holder);
       dom("div","routine-time",r[0],row);
@@ -289,7 +314,9 @@
       var day=new Intl.DateTimeFormat("ru-RU",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
       $("liveClock").textContent=t;
       $("liveDate").textContent=day.toUpperCase();
-      $("systemLabel").textContent=state.page==="brain"?"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ":"ДЕМО-РЕЖИМ · "+t.slice(0,5);
+      var dbStatus=window.TracktorDB?window.TracktorDB.getStatus():"not-configured";
+      var dbLabel=dbStatus==="authenticated"?"БАЗА ОНЛАЙН":dbStatus==="signed-out"?"БАЗА · ВХОД":dbStatus==="connecting"?"БАЗА · ПОДКЛЮЧЕНИЕ":dbStatus==="sdk-missing"?"SDK НЕДОСТУПЕН":dbStatus==="error"?"ОШИБКА БАЗЫ":"ДЕМО-РЕЖИМ";
+      $("systemLabel").textContent=state.page==="brain"?(dbStatus==="authenticated"?"БАЗА ОНЛАЙН · 2209 ФАЙЛОВ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ"):dbLabel+(dbLabel==="ДЕМО-РЕЖИМ"?" · "+t.slice(0,5):"");
     }catch(e){$("liveClock").textContent=now.toLocaleTimeString("ru-RU");}
   }
   function renderCalendar(){
@@ -333,7 +360,7 @@
         svg("line",{x1:pt[0],y1:pt[1],x2:pt2[0],y2:pt2[1],stroke:"#223443","stroke-width":.6},root);
       }
     }
-    accounts.slice(0,17).forEach(function(ac,k){
+    currentAccounts().slice(0,17).forEach(function(ac,k){
       var a=-Math.PI+Math.PI*2*k/17,pt=polar(cx,cy,205+12*Math.sin(k),a);
       var small=polar(cx,cy,40+random(k+70)*28,a+random(k)*.4);
       var col=accent(k===4?1:k%5);
@@ -545,7 +572,7 @@
     drawText(parent,cx,cy-116,"ПРОЦЕССЫ","#566e7d",8,"middle",{"letter-spacing":"2"});
     drawText(parent,cx,cy-26,"ПАМЯТЬ","#688994",8,"middle",{"letter-spacing":"2"});
     var angles=[-90,-114,-75,-58,-42,-26,-10,5,19,34,49,65,88,105,122,140,158,180,202,237];
-    projects.forEach(function(p,i){
+    currentProjects().forEach(function(p,i){
       var a=rad(angles[i]+state.angle*22+(state.view==="folders"?(i%2?8:-8):0)),col=accent(p.color);
       var spotlight=matchSearch(p.name);
       var from=polar(cx,cy,103,a),to=polar(cx,cy,296,a);
@@ -577,7 +604,7 @@
     for(var k=0;k<(state.expanded?178:60);k++){
       var angle=rad(-172+k*344/(state.expanded?177:59))+state.angle*.035;
       var rr=(k%3===0?505:k%3===1?479:450),pt=polar(cx,cy,rr,angle);
-      var parentGroup=projects[k%projects.length],col=accent(Math.floor(k/20)%6),visible=matchSearch(parentGroup.name);
+      var parentGroup=currentProjects()[k%currentProjects().length],col=accent(Math.floor(k/20)%6),visible=matchSearch(parentGroup.name);
       if(k%9===0){drawLine(parent,polar(cx,cy,365,angle),pt,"#466270",.6,.23);}
       var pictograms=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
       drawBadge(parent,pt[0],pt[1],k%7===0?10.7:9.2,col,pictograms[k%pictograms.length],visible?(.53+k%4*.1):.07);
@@ -594,8 +621,8 @@
     drawCenter(parent,cx,cy);
     var sym=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
     // In the source recording, departments become individual file bubbles orbiting the central document.
-    projects.forEach(function(p,i){
-      var a=rad(-90+i*360/projects.length)+state.angle*.14+(state.view==="folders"?(i%2?-.06:.06):0);
+    currentProjects().forEach(function(p,i){
+      var a=rad(-90+i*360/currentProjects().length)+state.angle*.14+(state.view==="folders"?(i%2?-.06:.06):0);
       var distance=380+Math.sin(i*1.9)*27,pos=polar(cx,cy,distance,a),col=accent(p.color);
       var radius=(p.name==="SKILLS"?75:28+p.files*.27)*(.81+state.size*.36);
       var visible=matchSearch(p.name);
@@ -661,7 +688,7 @@
     var scale=.76+state.size*.55,r=165*scale;
     var kinds=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
     tiles.slice(0,state.expanded?16:10).forEach(function(tile,i){
-      var found=projects.find(function(x){return x.name===tile[0];});
+      var found=currentProjects().find(function(x){return x.name===tile[0];});
       var p={name:tile[0],files:found?found.files:38,color:tile[3]};
       var cx=tile[1],cy=tile[2],c=accent(p.color);
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
@@ -709,19 +736,19 @@
   function forceLayout(parent){
     drawStars(parent,160);
     var spots=[];
-    projects.forEach(function(p,i){
+    currentProjects().forEach(function(p,i){
       var a=rad(i*137.508+state.angle*30),dist=90+Math.sqrt(i/20)*360,pos=polar(535,455,dist,a);
       pos[0]+=Math.sin(i*4)*25;pos[1]+=Math.cos(i*3)*25;spots.push(pos);
     });
     spots.forEach(function(pt,i){
-      var p=projects[i],col=accent(p.color),match=matchSearch(p.name);
+      var p=currentProjects()[i],col=accent(p.color),match=matchSearch(p.name);
       for(var j=0;j<2;j++){
         var other=spots[(i+1+j*6)%spots.length];
         drawLine(parent,pt,other,col,.8,match?.14:.02);
       }
     });
     spots.forEach(function(pos,i){
-      var p=projects[i],col=accent(p.color);
+      var p=currentProjects()[i],col=accent(p.color);
       var group=svg("g",{opacity:matchSearch(p.name)?1:.1},parent);
       var radius=15+p.files*.20+state.size*15;
       drawCircle(group,pos[0],pos[1],radius,"#0a2029",col,1,.48);
@@ -867,8 +894,85 @@
     var band=function(z){return z>2.2?2:state.names&&z>1.55?1:0;};
     if(band(before)!==band(after))renderBrain();
   }
+
+  function updateAuthUI(){
+    var user=window.TracktorDB.getUser();
+    $("accountButton").textContent=user?"АККАУНТ":"ВОЙТИ";
+    $("accountButton").title=user?("Аккаунт: "+user.email):"Войти и подключить данные";
+    $("accountButton").setAttribute("aria-label",user?("Аккаунт "+user.email):"Войти в базу данных");
+    updateClock();
+  }
+  function openAuthModal(){
+    var user=window.TracktorDB.getUser(),configured=window.TracktorDB.isConfigured(),status=window.TracktorDB.getStatus();
+    authMode="signin";$("authTitle").textContent=user?"АККАУНТ TRACKTOR":"Вход в TRACKTOR";
+    $("authFields").classList.toggle("hidden",Boolean(user)||!configured);
+    $("authSubmit").classList.toggle("hidden",Boolean(user)||!configured);
+    $("authToggleMode").classList.toggle("hidden",Boolean(user)||!configured);
+    $("authSignOut").classList.toggle("hidden",!user);
+    $("authSubmit").textContent="ВОЙТИ";$("authToggleMode").textContent="Создать аккаунт";
+    if(user)$("authFeedback").textContent="Вы вошли как "+user.email+". Данные синхронизируются с PostgreSQL.";
+    else if(!configured)$("authFeedback").textContent="База ещё не подключена. Создайте проект Supabase, выполните supabase-schema.sql и внесите Project URL и Publishable key в supabase-config.js.";
+    else if(status==="sdk-missing")$("authFeedback").textContent="Библиотека Supabase не загрузилась. Проверьте подключение к CDN и обновите страницу.";
+    else $("authFeedback").textContent="Войдите по email и паролю или создайте новый аккаунт.";
+    $("authModal").classList.remove("hidden");
+    if(configured&&!user)$("authEmail").focus();else $("closeAuthModal").focus();
+  }
+  function hideAuthModal(){$("authModal").classList.add("hidden");}
+  function toggleAuthMode(){
+    authMode=authMode==="signin"?"signup":"signin";
+    $("authTitle").textContent=authMode==="signup"?"Создание аккаунта":"Вход в TRACKTOR";
+    $("authSubmit").textContent=authMode==="signup"?"СОЗДАТЬ АККАУНТ":"ВОЙТИ";
+    $("authToggleMode").textContent=authMode==="signup"?"Уже есть аккаунт? Войти":"Создать аккаунт";
+    $("authPassword").setAttribute("autocomplete",authMode==="signup"?"new-password":"current-password");
+    $("authFeedback").textContent=authMode==="signup"?"После регистрации может потребоваться подтверждение email.":"Введите email и пароль.";
+  }
+  function submitAuth(){
+    var email=$("authEmail").value.trim(),password=$("authPassword").value;
+    if(!email||!password){$("authFeedback").textContent="Укажите email и пароль.";return;}
+    if(password.length<8){$("authFeedback").textContent="Пароль должен содержать не менее 8 символов.";return;}
+    var button=$("authSubmit");button.disabled=true;
+    $("authFeedback").textContent=authMode==="signup"?"Создаём аккаунт…":"Выполняем вход…";
+    var action=authMode==="signup"?window.TracktorDB.signUp(email,password):window.TracktorDB.signIn(email,password);
+    action.then(function(result){
+      if(authMode==="signup"&&!result.session){$("authFeedback").textContent="Аккаунт создан. Проверьте почту и подтвердите адрес, затем войдите.";return;}
+      hideAuthModal();notify(authMode==="signup"?"Аккаунт создан":"Вход выполнен");
+    }).catch(function(error){$("authFeedback").textContent=error.message||"Не удалось выполнить вход.";})
+      .finally(function(){button.disabled=false;});
+  }
+  function syncDatabaseData(){
+    if(!window.TracktorDB.getUser()){
+      databaseSkills=[];databaseClients=null;databaseProjects=null;databaseRoutines=null;
+      renderSkills();renderWallet();renderRoutines();renderCommand();return Promise.resolve();
+    }
+    return Promise.all([
+      window.TracktorDB.loadPreferences(),window.TracktorDB.listSkills(),window.TracktorDB.listClients(),
+      window.TracktorDB.listProjects(),window.TracktorDB.listRoutines()
+    ]).then(function(result){
+      var prefs=result[0],skills=result[1],clients=result[2],loadedProjects=result[3],routines=result[4];
+      databaseSkills=skills||[];databaseClients=clients||[];databaseProjects=loadedProjects||[];databaseRoutines=routines||[];
+      if(prefs&&typeof prefs==="object"){
+        ["layout","view","angle","force","size","names","theme","hud","plaque"].forEach(function(k){if(Object.prototype.hasOwnProperty.call(prefs,k))state[k]=prefs[k];});
+        if(!["rings","circle","hex","force"].includes(state.layout))state.layout="rings";
+        if(!["departments","folders"].includes(state.view))state.view="departments";
+        state.angle=clamp(Number(state.angle)||0,-1,1);state.force=clamp(Number(state.force)||0,0,.12);state.size=clamp(Number(state.size)||.6,.15,.9);
+        state.names=Boolean(state.names);state.hud=Boolean(state.hud);state.plaque=Boolean(state.plaque);
+        if(!themes.some(function(t){return t.name===state.theme;}))state.theme="Океан";
+      }
+      restoreUI();renderThemes();renderSkills();renderWallet();renderRoutines();renderBrain();renderCommand();
+    }).catch(function(error){notify("Ошибка загрузки базы: "+(error.message||"проверьте схему и права доступа"));});
+  }
   function bind(){
     $("brandButton").addEventListener("click",openCommand);
+    $("accountButton").addEventListener("click",openAuthModal);
+    $("closeAuthModal").addEventListener("click",hideAuthModal);
+    $("authModal").addEventListener("click",function(ev){if(ev.target===this)hideAuthModal();});
+    $("authToggleMode").addEventListener("click",toggleAuthMode);
+    $("authSubmit").addEventListener("click",submitAuth);
+    $("authPassword").addEventListener("keydown",function(ev){if(ev.key==="Enter")submitAuth();});
+    $("authSignOut").addEventListener("click",function(){
+      window.TracktorDB.signOut().then(function(){hideAuthModal();notify("Вы вышли из аккаунта");})
+        .catch(function(error){$("authFeedback").textContent=error.message;});
+    });
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
     $("navBack").addEventListener("click",openCommand);
     $("closeClientModal").addEventListener("click",hideClient);
@@ -877,13 +981,21 @@
     $("clientOpenBrain").addEventListener("click",function(){
       var title=selectedClient?selectedClient[0]:"";
       hideClient();
-      if(projects.some(function(p){return p.name.toLowerCase().includes(title.toLowerCase());}))openBrain(title);
+      if(currentProjects().some(function(p){return p.name.toLowerCase().includes(title.toLowerCase());}))openBrain(title);
       else {openBrain();notify("Карта открыта. Данные этого клиента в демоверсии ограничены");}
     });
     $("navContact").addEventListener("click",function(){notify("Контакты: подключение к серверу недоступно в демоверсии");});
     $("navSearch").addEventListener("click",function(){openBrain();$("fileSearch").focus();});
     $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
-    $("addSkill").addEventListener("click",function(){notify("Добавление навыка доступно после подключения сервера оригинала");});
+    $("addSkill").addEventListener("click",function(){
+      if(!window.TracktorDB.getUser()){openAuthModal();notify("Войдите в аккаунт, чтобы сохранять навыки в базе");return;}
+      var name=window.prompt("Название нового навыка:");
+      if(!name||!name.trim())return;
+      var description=window.prompt("Краткое описание (необязательно):")||"";
+      window.TracktorDB.createSkill(name.trim(),description.trim()).then(function(skill){
+        databaseSkills.push(skill);renderSkills();notify("Навык сохранён в PostgreSQL");
+      }).catch(function(error){notify(error.message||"Не удалось сохранить навык");});
+    });
     $("navTraffic").addEventListener("click",function(){openBrain();notify("Раздел трафика (демо)");});
     $("navFred").addEventListener("click",function(){openBrain();notify("Обзор файлов");});
     $("navPresent").addEventListener("click",function(){
@@ -937,8 +1049,12 @@
         var prefs={};
         ["layout","view","angle","force","size","names","theme","hud","plaque"].forEach(function(k){prefs[k]=state[k];});
         localStorage.setItem("tracktor-preferences",JSON.stringify(prefs));
-        $("saveFeedback").textContent="✓ Настройки сохранены в браузере";
-      }catch(e){$("saveFeedback").textContent="Не удалось сохранить настройки"; }
+        if(window.TracktorDB.getUser()){
+          $("saveFeedback").textContent="Сохраняем настройки в PostgreSQL…";
+          window.TracktorDB.savePreferences(prefs).then(function(){$("saveFeedback").textContent="✓ Настройки сохранены в базе и браузере";})
+            .catch(function(error){$("saveFeedback").textContent="Сохранено в браузере; ошибка БД: "+error.message;});
+        }else{$("saveFeedback").textContent="✓ В браузере. Войдите, чтобы синхронизировать с базой";}
+      }catch(e){$("saveFeedback").textContent="Не удалось сохранить настройки";}
     });
     $("exportPng").addEventListener("click",exportPNG);
     $("brainSvg").addEventListener("dblclick",function(e){
@@ -1008,7 +1124,7 @@
     $("shortcuts").addEventListener("click",function(e){if(e.target===this)this.classList.add("hidden");});
     document.addEventListener("keydown",function(e){
       if(e.key==="Escape"){
-        hideClient();
+        hideClient();hideAuthModal();
         $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");$("navMenu").setAttribute("aria-expanded","false");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
         if(document.body.classList.contains("presenting")){document.body.classList.remove("presenting");if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}
         return;
@@ -1065,6 +1181,9 @@
     $("plaqueToggle").setAttribute("aria-pressed",String(state.plaque));
   }
   readSaved();renderHeaderIcons();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
+  window.TracktorDB.onAuthChange(function(){updateAuthUI();syncDatabaseData();});
+  window.TracktorDB.init().then(function(){updateAuthUI();if(window.TracktorDB.getUser())syncDatabaseData();})
+    .catch(function(error){updateAuthUI();notify("Ошибка подключения к базе: "+error.message);});
   updateClock();setInterval(updateClock,1000);
   if(location.hash==="#cerebro"||location.hash==="#brain")openBrain();
 })();
