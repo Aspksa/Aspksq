@@ -66,6 +66,7 @@ async function screenshot(page,name){
       await screenshot(page,vp.id+'-command');
       await page.locator('#navBrain').click();
       await page.waitForSelector('#brainSvg .group-node',{timeout:15000});
+      await page.locator('#brainLoader').waitFor({state:'hidden',timeout:5000});
       await inspect(page,vp.width,vp.height,'brain');
       await screenshot(page,vp.id+'-rings');
       await page.locator('[data-layout="circle"]').click();
