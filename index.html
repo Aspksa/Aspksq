@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08111b">
+  <meta name="description" content="TRACKTOR Comando e Segundo Cérebro — painel de projetos e mapa visual interativo.">
+  <title>TRACKTOR — Comando / Segundo Cérebro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app mode-command">
+    <header class="topbar">
+      <button class="brand" id="brandButton" aria-label="Ir para o Comando">
+        <span class="brand-mark"><span class="orbit orbit-a"></span><span class="orbit orbit-b"></span></span>
+        <span class="brand-copy">
+          <strong>TRACKTOR <em id="brandSection">Comando</em></strong>
+          <small id="brandSubtitle">MAX MUNHOZ · AGENTE 05</small>
+        </span>
+      </button>
+      <div class="topbar-right">
+        <span class="system-status"><i></i><span id="systemLabel">SINCRONIZADO 18:22</span></span>
+        <nav class="command-nav" aria-label="Navegação do comando">
+          <button class="top-action" id="navFred">FRED</button>
+          <button class="top-action" id="navTraffic">TRÁFEGO</button>
+          <button class="icon-button" id="navBrain" title="Abrir Segundo Cérebro" aria-label="Abrir Segundo Cérebro">⌁</button>
+          <button class="icon-button" id="navRefresh" title="Atualizar" aria-label="Atualizar">↻</button>
+          <button class="icon-button" id="navPower" title="Segundo Cérebro" aria-label="Segundo Cérebro">⏻</button>
+        </nav>
+        <nav class="brain-nav" aria-label="Navegação do Segundo Cérebro">
+          <button class="top-action" id="navBack"><span>←</span> VOLTAR AO COMANDO</button>
+          <button class="top-action" id="navPresent">▷ APRESENTAR</button>
+          <button class="icon-button" id="navMenu" aria-label="Abrir menu" aria-expanded="false">☰</button>
+        </nav>
+      </div>
+      <div class="header-menu hidden" id="headerMenu">
+        <button data-menu="command">◈ Comando</button>
+        <button data-menu="brain">◎ Segundo Cérebro</button>
+        <button data-menu="reset">↻ Restaurar visualização</button>
+        <button data-menu="help">? Atalhos</button>
+      </div>
+    </header>
+    <main class="command-page" id="commandPage">
+      <aside class="command-left">
+        <section class="panel wallet-panel">
+          <header class="panel-heading"><span><b class="mini-star">✦</b> CARTEIRA</span><small>PANORAMA 09:07 08:40</small></header>
+          <div class="wallet-list" id="walletList"></div>
+          <footer class="wallet-footer"><span>19 CONTAS · 9 PAGANTES</span><strong>R$ 14.039/MÊS</strong></footer>
+        </section>
+        <section class="panel now-panel">
+          <header class="panel-heading"><span><b class="mini-star">✦</b> AGORA</span><small>BRASÍLIA</small></header>
+          <div class="clock-line"><strong id="liveClock">18:22:25</strong><small id="liveDate">SÁB, 14 DE NOV DE 2026</small></div>
+          <div class="mini-calendar" id="miniCalendar"></div>
+          <p class="panel-note">Tudo conectado. Uma visão, todas as operações.</p>
+        </section>
+      </aside>
+      <section class="command-center" id="commandStage">
+        <div class="command-stage-head">
+          <h1><span class="tiny-target">⊙</span> TRACKTOR <em>Comando</em></h1>
+          <p>MAX MUNHOZ · TRACKTOR</p>
+        </div>
+        <svg id="commandSvg" class="command-svg" viewBox="0 0 820 820" role="img" aria-label="Mapa de contas, projetos e tráfego"></svg>
+        <button class="command-open" id="openBrainButton">◎ ABRIR SEGUNDO CÉREBRO <span>↗</span></button>
+        <footer class="stage-ticker" id="stageTicker">HTTP Error 403: Forbidden &nbsp;&nbsp; · &nbsp;&nbsp; sincronização em andamento</footer>
+      </section>
+      <aside class="command-right">
+        <section class="panel team-panel">
+          <header class="panel-heading"><span><b class="mini-star">✦</b> EQUIPE</span><small>143 NA EQUIPE</small></header>
+          <div class="team-stat">♧ TRABALHANDO AGORA · <strong>9381</strong> DISPAROS HOJE</div>
+          <div class="team-grid" id="teamGrid"></div>
+        </section>
+        <section class="panel alerts-panel">
+          <header class="panel-heading"><span><b class="mini-star">✦</b> AVISOS</span><small>FILA DO MOTOR</small></header>
+          <div class="alert-number"><strong>9</strong><span>AVISOS HOJE<br>NA FILA</span></div>
+          <div class="alert-items" id="alertItems"></div>
+        </section>
+      </aside>
+    </main>
+    <main class="brain-page" id="brainPage" hidden>
+      <section class="brain-canvas">
+        <div class="canvas-noise"></div>
+        <svg id="brainSvg" viewBox="0 0 1100 920" role="img" aria-label="Mapa interativo do Segundo Cérebro">
+          <g id="mapViewport"></g>
+        </svg>
+        <div class="map-tooltip hidden" id="mapTooltip"></div>
+        <div class="canvas-hint" id="canvasHint">ARRASTE PARA MOVER · SCROLL PARA ZOOM · CLIQUE PARA EXPLORAR</div>
+        <div class="zoom-controls" aria-label="Controles do mapa">
+          <button id="zoomIn" aria-label="Aproximar">+</button>
+          <button id="zoomOut" aria-label="Afastar">−</button>
+          <button id="zoomReset" aria-label="Recentrar">◎</button>
+        </div>
+      </section>
+      <aside class="brain-settings" id="brainSettings">
+        <div class="search-wrap">
+          <input id="fileSearch" type="search" placeholder="buscar arquivos ( / )" aria-label="Buscar arquivos" autocomplete="off">
+          <kbd>/</kbd>
+        </div>
+        <section class="control-section">
+          <h2>LAYOUT</h2>
+          <div class="segmented" id="layoutButtons">
+            <button class="active" data-layout="rings">Anéis</button>
+            <button data-layout="circle">Círculo</button>
+            <button data-layout="hex">Hex</button>
+            <button data-layout="force">Força</button>
+          </div>
+          <div class="subcontrol"><span>PLACA</span><button class="mini-chip" id="hudToggle">HUD</button></div>
+        </section>
+        <section class="control-section">
+          <h2>VISTA</h2>
+          <div class="segmented" id="viewButtons">
+            <button class="active" data-view="departments">Departamentos</button>
+            <button data-view="folders">Pastas</button>
+          </div>
+        </section>
+        <section class="control-section slider-section">
+          <label for="ringAngle">GIRO DOS ANÉIS <output id="ringAngleValue">0.25</output></label>
+          <input id="ringAngle" type="range" min="-1" max="1" step="0.01" value="0.25">
+          <label class="check-label"><input type="checkbox" id="fileNames"> nomes dos arquivos (com zoom)</label>
+          <label for="ringForce">ANÉIS (FORÇA) <output id="ringForceValue">0.020</output></label>
+          <input id="ringForce" type="range" min="0" max="0.12" step="0.005" value="0.020">
+          <label for="mapSize">TAMANHO (CÍRCULO E HEX) <output id="mapSizeValue">0.40</output></label>
+          <input id="mapSize" type="range" min="0.15" max="0.90" step="0.01" value="0.40">
+        </section>
+        <section class="control-section">
+          <div class="button-row triple">
+            <button id="expandAll">Expandir<br>tudo</button>
+            <button id="collapseAll">Recolher<br>tudo</button>
+            <button id="recenter">Recentrar</button>
+          </div>
+          <div class="button-row save-row">
+            <button class="primary" id="saveSettings">SALVAR<br>AJUSTES</button>
+            <button id="exportPng">Baixar PNG</button>
+          </div>
+          <p class="inline-feedback" id="saveFeedback" aria-live="polite"></p>
+        </section>
+        <section class="control-section theme-section">
+          <h2>TEMA</h2>
+          <div class="theme-list" id="themeList"></div>
+        </section>
+        <footer class="settings-footer"><span class="status-dot"></span> 2209 ARQUIVOS · 137 ROTINAS <span>v 1.0</span></footer>
+      </aside>
+    </main>
+    <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+    <div class="shortcuts hidden" id="shortcuts">
+      <div class="shortcuts-card">
+        <button id="closeShortcuts" class="shortcuts-close" aria-label="Fechar">×</button>
+        <h2>ATALHOS DO SEGUNDO CÉREBRO</h2>
+        <p><kbd>/</kbd> Buscar arquivos</p>
+        <p><kbd>+</kbd> / <kbd>−</kbd> Zoom</p>
+        <p><kbd>0</kbd> Recentrar mapa</p>
+        <p><kbd>Esc</kbd> Fechar detalhes</p>
+        <p>Arraste para mover o mapa. Clique nos nós para ver detalhes.</p>
+      </div>
+    </div>
+  </div>
+  <script src="app.js" defer></script>
+</body>
+</html>
