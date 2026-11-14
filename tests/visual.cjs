@@ -97,6 +97,7 @@ async function exerciseEveryControl(browser,errors){
     await hidden('#headerMenu');
     await click('#navMenu');await click('#headerMenu [data-menu="command"]');
     await visible('#commandPage');
+    await click('#navBrain');
     await click('#navMenu');await click('#headerMenu [data-menu="brain"]');
     await visible('#brainPage');
 
