@@ -362,14 +362,69 @@
   }
   function hideDetails(){$("mapTooltip").classList.add("hidden");state.selected=null;}
   function drawCenter(parent,cx,cy){
-    drawCircle(parent,cx,cy,83,"none","#30434c",1,.52);
-    drawCircle(parent,cx,cy,60,"#091a25","#245b5b",1,.8);
-    drawCircle(parent,cx,cy,44,"none",accent(0),1.4,.93);
-    drawCircle(parent,cx,cy,22,"none","#b2caca",1.1,.7);
-    drawCircle(parent,cx+5,cy-4,14,"none","#91b4bd",.9,.95);
-    drawCircle(parent,cx-5,cy+2,11,"none","#9cb6b9",1,.65);
-    drawText(parent,cx,cy+74,"CLAUDE.MD","#789aa3",9,"middle",{"letter-spacing":"2"});
-    attachNode(drawCircle(parent,cx,cy,46,"transparent","none",0,1),{name:"CLAUDE.MD",files:1,color:0},"group");
+    drawCircle(parent,cx,cy,84,"none","#30434c",1,.5);
+    drawCircle(parent,cx,cy,61,"#091923","#245b5b",.95,.89);
+    drawCircle(parent,cx,cy,45,"none",accent(0),1.7,.97,"center-ring");
+    var logo=svg("g",{class:"brain-center-logo",stroke:"#d8e8ea","stroke-width":"1.8",
+      "stroke-linecap":"round",fill:"none",opacity:".96"},parent);
+    svg("ellipse",{cx:cx-3,cy:cy+1,rx:20,ry:16,transform:"rotate(-40 "+(cx-3)+" "+(cy+1)+")"},logo);
+    svg("ellipse",{cx:cx+5,cy:cy-3,rx:16,ry:20,transform:"rotate(35 "+(cx+5)+" "+(cy-3)+")"},logo);
+    svg("ellipse",{cx:cx+1,cy:cy+1,rx:12,ry:16,transform:"rotate(72 "+(cx+1)+" "+(cy+1)+")"},logo);
+    drawText(parent,cx,cy+76,"CLAUDE.MD","#839da6",9,"middle",{"letter-spacing":"2",class:"center-label"});
+    attachNode(drawCircle(parent,cx,cy,46,"transparent","none",0,1),
+      {name:"CLAUDE.MD",files:1,color:0},"group");
+  }
+  function drawBadge(parent,x,y,r,color,kind,opacity){
+    var g=svg("g",{class:"map-badge",opacity:opacity===undefined?1:opacity},parent);
+    drawCircle(g,x,y,r,"#0a1723",color,1,.62);
+    drawCircle(g,x,y,r*.78,"none",color,.55,.31);
+    var icon=svg("g",{transform:"translate("+x+" "+y+") scale("+(r/10)+")",stroke:color,"stroke-width":1.35,
+      "stroke-linecap":"round","stroke-linejoin":"round",fill:"none",opacity:".8"},g);
+    if(kind==="file"){
+      svg("path",{d:"M-4 -6 H2 L5 -3 V6 H-4 Z M2 -6 V-3 H5 M-2 -1 H3 M-2 2 H3"},icon);
+    }else if(kind==="chat"){
+      svg("path",{d:"M-5 -4 Q-5 -6 -3 -6 H4 Q6 -6 6 -4 V2 Q6 4 4 4 H-1 L-4 7 V4 Q-5 4 -5 2 Z M-2 -2 H3 M-2 1 H2"},icon);
+    }else if(kind==="target"){
+      drawCircle(icon,0,0,5.5,"none",color,1.2,.95);
+      drawCircle(icon,0,0,2.3,"none",color,1.1,.9);
+      drawCircle(icon,0,0,.8,color,"none",0,.9);
+    }else if(kind==="chart"){
+      svg("path",{d:"M-6 6 V1 H-3 V6 M-1 6 V-3 H2 V6 M4 6 V-6 H7 V6"},icon);
+    }else if(kind==="star"){
+      svg("path",{d:"M0 -7 L1.5 -1.5 L7 0 L1.5 1.5 L0 7 L-1.5 1.5 L-7 0 L-1.5 -1.5 Z"},icon);
+    }else if(kind==="link"){
+      svg("path",{d:"M-1 -4 L2 -6 Q6 -8 7 -4 Q8 -1 5 1 L3 3 M1 4 L-2 6 Q-6 8 -7 4 Q-8 1 -5 -1 L-3 -3 M-3 2 L3 -2"},icon);
+    }else if(kind==="folder"){
+      svg("path",{d:"M-7 -3 V5 H7 V-3 H0 L-2 -6 H-7 Z"},icon);
+    }else if(kind==="code"){
+      svg("path",{d:"M-2 -5 L-7 0 L-2 5 M2 -5 L7 0 L2 5 M1 -7 L-1 7"},icon);
+    }else if(kind==="calendar"){
+      svg("rect",{x:-6,y:-5,width:12,height:11,rx:1},icon);
+      svg("path",{d:"M-6 -1 H6 M-3 -7 V-3 M3 -7 V-3"},icon);
+    }else{
+      svg("path",{d:"M0 -7 V-5 M5 -5 L3 -3 M7 0 H5 M5 5 L3 3 M0 7 V5 M-5 5 L-3 3 M-7 0 H-5 M-5 -5 L-3 -3"},icon);
+      drawCircle(icon,0,0,3,"none",color,1,.95);
+    }
+    return g;
+  }
+  function drawPlaque(parent,x,y,text,color,anchor){
+    if(!state.plaque)return;
+    var width=Math.max(65,text.length*5.6+12);
+    var left=anchor==="start"?x-3:anchor==="end"?x-width+3:x-width/2;
+    svg("rect",{x:left,y:y-12,width:width,height:17,rx:3,fill:"#0d2532","fill-opacity":".88",
+      stroke:color,"stroke-width":".65","stroke-opacity":".48"},parent);
+  }
+  function ensureBackdrop(){
+    var canvas=$("brainSvg");
+    if(canvas.querySelector("#mapBackdrop"))return;
+    var defs=svg("defs",{},null);
+    var pattern=svg("pattern",{id:"backgroundHex",width:86,height:75,patternUnits:"userSpaceOnUse"},defs);
+    svg("path",{d:"M21 1 L64 1 L85 37.5 L64 74 L21 74 L0 37.5 Z",fill:"none",stroke:"#2b4352",
+      "stroke-width":"1","stroke-opacity":".25"},pattern);
+    canvas.insertBefore(defs,$("mapViewport"));
+    var backdrop=svg("rect",{id:"mapBackdrop",x:0,y:0,width:1100,height:920,
+      fill:"url(#backgroundHex)","fill-opacity":".22","pointer-events":"none"},null);
+    canvas.insertBefore(backdrop,$("mapViewport"));
   }
   function drawStars(parent,count){
     for(var i=0;i<count;i++){
@@ -506,6 +561,7 @@
     $("mapViewport").setAttribute("transform","translate("+(state.panX+baseX)+" "+state.panY+") translate(550 460) scale("+state.zoom+") translate(-550 -460)");
   }
   function renderBrain(transition){
+    ensureBackdrop();
     var group=$("mapViewport");
     clearHoverLinks();
     var stale=$("previousMap");if(stale)stale.remove();
