@@ -343,3 +343,70 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
  .command-left .wallet-panel,.command-right .team-panel{height:auto}
  .brain-loader{gap:10px}
 }
+
+/* High fidelity refinements from the reference video: geometry, badge and movement */
+@media(min-width:641px) and (max-width:950px){
+  .topbar{height:33px;flex-basis:33px}
+  .brain-settings{
+    height:calc(100% - 13px);width:188px;flex:0 0 188px;
+    margin:7px 0 6px;border:1px solid #213849;border-radius:7px;
+    padding:8px 8px 10px;box-shadow:-8px 0 22px #020b14a1
+  }
+  .brain-settings .search-wrap{margin-bottom:12px}
+  .brain-settings .control-section{margin-bottom:12px}
+  .brain-settings .theme-item{min-height:55px}
+  .brain-settings .theme-strip{height:15px}
+  .brain-settings .theme-strip i{height:9px;width:9px}
+  .top-action{font-size:8px}
+  .brand-copy strong{font-size:11px}
+  .brand-mark{width:21px;height:21px}
+  .command-page{padding:6px;gap:7px;grid-template-columns:minmax(182px,26%) minmax(310px,1fr) minmax(188px,28%)}
+  .command-left .wallet-panel{height:calc(100vh - 147px)}
+  .command-right .team-panel{height:calc(100vh - 111px)}
+  .command-center{border-color:#183244}
+}
+.subcontrol{gap:5px;margin-top:5px}
+.subcontrol .mini-chip{padding:4px 9px;min-height:25px}
+.subcontrol .mini-chip:not(.active){background:#111e2d;color:#819aa8;border-color:#263d4a}
+#brainSvg .map-badge{transition:filter .2s ease,opacity .2s ease}
+#brainSvg .map-badge:hover{filter:drop-shadow(0 0 3px #61d8c6)}
+#brainSvg .center-ring{filter:drop-shadow(0 0 5px #27dcbd42);animation:center-halo 3.5s ease-in-out infinite}
+#brainSvg .brain-center-logo{transform-box:fill-box;transform-origin:center;animation:logo-orbit 12s ease-in-out infinite alternate}
+#brainSvg #hoverLinks{animation:link-reveal .28s ease-out both}
+#brainSvg #hoverLinks line{stroke-dasharray:8 5;animation:connected-flow 9s linear infinite}
+#brainSvg .graph-enter{transform-box:fill-box;transform-origin:center;animation:layout-enter .48s cubic-bezier(.16,1,.3,1) both}
+#brainSvg .graph-exit{pointer-events:none;animation:layout-exit .4s ease-in both}
+#brainSvg .node-label{paint-order:stroke fill;stroke:#07121a;stroke-width:1.15px;stroke-linejoin:round}
+#brainSvg .mini-label{paint-order:stroke fill;stroke:#07121a;stroke-width:1.3px}
+.command-stage-head h1{font-size:17px}
+.command-svg{filter:drop-shadow(0 0 2px #49bbaa18)}
+.command-svg .account-node:hover{stroke:#49d8bd;stroke-width:1}
+.command-svg .command-star{animation:core-shimmer 3s ease-in-out infinite alternate}
+.command-svg .command-network{animation:network-intro .9s ease-out both}
+.mode-command .command-left{animation:panel-return .48s ease-out both}
+.mode-command .command-center{animation:panel-return .52s ease-out both}
+.mode-command .command-right{animation:panel-return .56s ease-out both}
+.mode-brain .brain-settings{animation:panel-return .4s ease-out both}
+.mode-brain .brain-canvas{animation:panel-return .45s ease-out both}
+#mapViewport .hex-cell{transition:fill-opacity .2s ease,stroke-opacity .2s ease}
+#brainSvg .group-node:hover,#brainSvg .file-node:hover{filter:drop-shadow(0 0 4px #47dac0)}
+.map-tooltip{background:#091923f2;border:1px solid #275462;color:#c6d9dd;backdrop-filter:blur(7px);min-width:175px;max-width:245px}
+.map-tooltip strong{font-size:11px}
+.map-tooltip small{font-size:8px;line-height:1.9}
+#brainSvg{overscroll-behavior:contain}
+@keyframes center-halo{0%,100%{opacity:.65;stroke-width:1.5px}50%{opacity:1;stroke-width:2px}}
+@keyframes logo-orbit{from{transform:rotate(-8deg) scale(.98)}to{transform:rotate(8deg) scale(1.02)}}
+@keyframes link-reveal{from{opacity:0}to{opacity:1}}
+@keyframes connected-flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-120}}
+@keyframes layout-enter{from{opacity:0;filter:brightness(.6)}to{opacity:1;filter:brightness(1)}}
+@keyframes layout-exit{from{opacity:1;filter:brightness(1)}to{opacity:0;filter:brightness(.5)}}
+@keyframes core-shimmer{0%{opacity:.35}100%{opacity:1}}
+@keyframes network-intro{from{opacity:0}to{opacity:1}}
+@keyframes panel-return{from{opacity:.45;filter:blur(3px)}to{opacity:1;filter:blur(0px)}}
+@media(prefers-reduced-motion:reduce){
+  #brainSvg .center-ring,#brainSvg .brain-center-logo,#brainSvg #hoverLinks,
+  #brainSvg #hoverLinks line,#brainSvg .graph-enter,#brainSvg .graph-exit,
+  .command-svg .command-star,.command-svg .command-network,
+  .mode-command .command-left,.mode-command .command-right,.mode-command .command-center,
+  .mode-brain .brain-settings,.mode-brain .brain-canvas{animation:none!important}
+}
