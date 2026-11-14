@@ -4,24 +4,24 @@
   var NS = "http://www.w3.org/2000/svg";
   var $ = function (id) { return document.getElementById(id); };
   var accounts = [
-    ["Miranda Seguros","500","tráfego, site e site","green"],
-    ["Tojiro Mooca","2.200","tráfego · chega de...","green"],
-    ["Tojiro Zona Norte","1.500","tráfego · chega de...","green"],
-    ["Instituto Bella Face - SER","850/895","serviços Tractor","red"],
-    ["Mecânica Primus","690","tráfego e site","red"],
-    ["Total Protege","1.000","tráfego","grey"],
-    ["Sr Man Barber Shop","1.000","tráfego","red"],
-    ["Expo Peças","","produção","green"],
-    ["Potecitamente","","tráfego · chega de...","green"],
-    ["Daiane Rosendo Advocacia","","Google Ads · Mídia...","green"],
-    ["Grupo Centurião","3.200","marca e produção","red"],
-    ["Grupo PMS","2.500","sistema e produção","red"],
-    ["T-Motors","1.850","sistema","red"],
-    ["Escrita com Ciência","","tráfego","grey"],
-    ["Hellen Gestão","","tráfego","green"],
-    ["Jacque Gomes","","conteúdo","green"],
-    ["Maison Estética Sudoeste","","tráfego","red"],
-    ["Pissolatti Vinhos","","tráfego","green"],
+    ["Miranda Seguros","500","трафик, веб-сайт","green"],
+    ["Tojiro Mooca","2.200","трафик · продвижение","green"],
+    ["Tojiro Zona Norte","1.500","трафик · продвижение","green"],
+    ["Instituto Bella Face - SER","850/895","услуги TRACKTOR","red"],
+    ["Mecânica Primus","690","трафик и сайт","red"],
+    ["Total Protege","1.000","трафик","grey"],
+    ["Sr Man Barber Shop","1.000","трафик","red"],
+    ["Expo Peças","","производство","green"],
+    ["Potecitamente","","трафик · продвижение","green"],
+    ["Daiane Rosendo Advocacia","","Google Ads · реклама","green"],
+    ["Grupo Centurião","3.200","брендинг и продакшен","red"],
+    ["Grupo PMS","2.500","система и продакшен","red"],
+    ["T-Motors","1.850","система","red"],
+    ["Escrita com Ciência","","трафик","grey"],
+    ["Hellen Gestão","","трафик","green"],
+    ["Jacque Gomes","","контент","green"],
+    ["Maison Estética Sudoeste","","трафик","red"],
+    ["Pissolatti Vinhos","","трафик","green"],
     ["drafernanda","","","grey"]
   ];
   var projects = [
@@ -47,16 +47,16 @@
     {name:"MOTOR",files:29,color:1}
   ];
   var themes = [
-    {name:"Metálico Tracktor",colors:["#9ad1d0","#d7bd84","#b76a83","#816cae","#e09f7d","#b4d9eb"],accent:"#45d9b6",rgb:"69,217,182",bg:"#07131b"},
-    {name:"Rubric",colors:["#e7cfb2","#e69c70","#c64d5a","#ae3b6d","#e25daa","#a6b5e3"],accent:"#ef986b",rgb:"239,152,107",bg:"#161019"},
-    {name:"Oceano",colors:["#43e0b3","#63cdb6","#8cbadb","#668bc9","#917cdb","#e7b577"],accent:"#36dfb7",rgb:"54,223,183",bg:"#07111b"},
-    {name:"Neon",colors:["#f1c5ff","#ffeb67","#d4f467","#83e656","#fa42ba","#36dbea"],accent:"#d1fa5c",rgb:"209,250,92",bg:"#0a101b"},
-    {name:"Bordô",colors:["#e5b5b5","#d99299","#a75a75","#b47894","#dfad8c","#d6c8b0"],accent:"#e2a1aa",rgb:"226,161,170",bg:"#160f19"},
-    {name:"Papel",colors:["#a6b5c5","#c59c53","#6a7da2","#b98e6e","#7f6d9e","#879c9d"],accent:"#cfac77",rgb:"207,172,119",bg:"#151a21"}
+    {name:"Металлический TRACKTOR",colors:["#9ad1d0","#d7bd84","#b76a83","#816cae","#e09f7d","#b4d9eb"],accent:"#45d9b6",rgb:"69,217,182",bg:"#07131b"},
+    {name:"Рубрика",colors:["#e7cfb2","#e69c70","#c64d5a","#ae3b6d","#e25daa","#a6b5e3"],accent:"#ef986b",rgb:"239,152,107",bg:"#161019"},
+    {name:"Океан",colors:["#43e0b3","#63cdb6","#8cbadb","#668bc9","#917cdb","#e7b577"],accent:"#36dfb7",rgb:"54,223,183",bg:"#07111b"},
+    {name:"Неон",colors:["#f1c5ff","#ffeb67","#d4f467","#83e656","#fa42ba","#36dbea"],accent:"#d1fa5c",rgb:"209,250,92",bg:"#0a101b"},
+    {name:"Бордо",colors:["#e5b5b5","#d99299","#a75a75","#b47894","#dfad8c","#d6c8b0"],accent:"#e2a1aa",rgb:"226,161,170",bg:"#160f19"},
+    {name:"Бумага",colors:["#a6b5c5","#c59c53","#6a7da2","#b98e6e","#7f6d9e","#879c9d"],accent:"#cfac77",rgb:"207,172,119",bg:"#151a21"}
   ];
   var state = {
     page:"command",layout:"rings",view:"departments",angle:0.25,
-    force:0.02,size:0.40,names:false,theme:"Oceano",expanded:true,
+    force:0.02,size:0.40,names:false,theme:"Океан",expanded:true,
     zoom:1,panX:0,panY:0,search:"",hud:false,selected:null
   };
   var drag = null, dragged = false, timerToast = 0;
@@ -96,9 +96,11 @@
         });
       }
     }catch(e){}
+    var oldTheme={"Oceano":"Океан","Metálico Tracktor":"Металлический TRACKTOR","Rubric":"Рубрика","Neon":"Неон","Bordô":"Бордо","Papel":"Бумага"};
+    if(oldTheme[state.theme])state.theme=oldTheme[state.theme];
     if(!["rings","circle","hex","force"].includes(state.layout))state.layout="rings";
     if(!["departments","folders"].includes(state.view))state.view="departments";
-    if(!themes.some(function(t){return t.name===state.theme;}))state.theme="Oceano";
+    if(!themes.some(function(t){return t.name===state.theme;}))state.theme="Океан";
   }
   function applyTheme(){
     var t=theme();
@@ -115,7 +117,7 @@
       var strip=dom("span","theme-strip",undefined,item);
       t.colors.forEach(function(c){var dot=dom("i","",undefined,strip);dot.style.backgroundColor=c;});
       dom("span","theme-label",t.name,item);
-      if(t.name===state.theme)dom("small","", "EM USO",item);
+      if(t.name===state.theme)dom("small","", "ВЫБРАНА",item);
       item.addEventListener("click",function(){state.theme=t.name;applyTheme();renderThemes();renderBrain();renderCommand();});
     });
     applyTheme();
@@ -127,17 +129,69 @@
       dom("span","wallet-dot",undefined,row);
       var block=dom("span","wallet-client",undefined,row);
       dom("div","wallet-name",a[0],block);
-      dom("div","wallet-sub",a[2]||"em acompanhamento",block);
+      dom("div","wallet-sub",a[2]||"под наблюдением",block);
       var right=dom("span","wallet-aside",undefined,row);
       if(a[1])dom("span","wallet-money","R$ "+a[1],right);
-      dom("span","wallet-pill",i%7===2?"SITE":"▸ TRÁFEGO",right);
-      row.title="Visualizar "+a[0];
+      dom("span","wallet-pill",i%7===2?"САЙТ":"▸ ТРАФИК",right);
+      row.title="Открыть "+a[0];
       row.style.cursor="pointer";
       row.addEventListener("click",function(){openBrain(a[0]);});
     });
     var alerts=$("alertItems");alerts.textContent="";
-    ["Cópia solicitada pelo motor","Nova rotina do conteúdo","3 itens aguardam revisão"].forEach(function(t,i){
+    ["Система запросила копию","Новый процесс контента","3 элемента ждут проверки"].forEach(function(t,i){
       var e=dom("div","",undefined,alerts);dom("b","","0"+(i+1),e);e.appendChild(document.createTextNode(t));
+    });
+  }
+  function renderFunnel(){
+    var holder=$("funnelList");if(!holder)return;
+    holder.textContent="";
+    var rows=[["Expo Peças",548,0],["Tojiro Mooca",345,197],["Tojiro Zona Norte",243,127],
+      ["Instituto Bella Face",117,41],["Mecânica Primus",36,29],
+      ["Potecitamente",20,0],["Miranda Seguros",14,0],["Total Protege",0,0],["Sr Man Barber Shop",0,0]];
+    rows.forEach(function(data){
+      var item=dom("div","funnel-item",undefined,holder);
+      var l=dom("div","",undefined,item),r=dom("div","",undefined,item);
+      dom("div","funnel-name",data[0],l);
+      var track=dom("div","funnel-track",undefined,l),bar=dom("i","",undefined,track);
+      bar.style.width=(data[1]/548*100).toFixed(2)+"%";
+      dom("div","funnel-count",String(data[1]),r);
+      dom("div","funnel-mini",data[2]+" диалогов",r);
+    });
+  }
+  function renderSkills(){
+    var holder=$("skillsGrid");if(!holder)return;
+    holder.textContent="";
+    var skills=["/оптимизация-аккаунта","/отчёт-в-3-шага","/панель-кампаний","/цикл-креативов"];
+    skills.forEach(function(name){
+      var card=dom("div","skill-card",undefined,holder);
+      dom("div","skill-name",name,card);
+      dom("div","skill-meta","SONNET · СРЕДНИЙ",card);
+      var actions=dom("div","skill-controls",undefined,card);
+      var run=dom("button","", "▶",actions),more=dom("button","skill-more","◌",actions);
+      run.type="button";run.title="Запустить навык";
+      more.type="button";more.title="Информация о навыке";
+      run.addEventListener("click",function(){notify("Демо: для запуска "+name+" нужен сервер оригинала");});
+      more.addEventListener("click",function(){notify("Навык "+name+" · модель SONNET · режим «Средний»");});
+    });
+  }
+  function renderRoutines(){
+    var holder=$("routineList");if(!holder)return;holder.textContent="";
+    var routines=[
+      ["19:00","Проверка кредитного лимита","ТРЕКТОР · ПРОВЕРКА","СЛЕДУЮЩИЙ",true],
+      ["19:25","Поиск рабочего номера","УТИЛИТА · ВЫЗОВ","В ОЧЕРЕДИ",false],
+      ["20:30","Запросить номер у владельца","COBRA_RODIZIO · DOCKER","В ОЧЕРЕДИ",false],
+      ["23:40","Обновить панель данных","UPDATE-DATA · ОПЕРАЦИЯ","ЗАПЛАНИРОВАН",false],
+      ["04:10","Обновление CRM","АВТОМАТИЗАЦИЯ · СИСТЕМА","ЗАПЛАНИРОВАН",false],
+      ["06:00","Отчёт по рекламным кампаниям","РАБОЧИЕ ЗАДАЧИ","ЗАПЛАНИРОВАН",false]
+    ];
+    routines.forEach(function(r){
+      var row=dom("div","routine-row"+(r[4]?" next":""),undefined,holder);
+      dom("div","routine-time",r[0],row);
+      var center=dom("div","",undefined,row);
+      dom("div","routine-name",r[1],center);
+      dom("div","routine-detail",r[2],center);
+      dom("div","routine-status",r[3],row);
+      row.title=r[1]+" · "+r[3];
     });
   }
   function renderTeam(){
@@ -146,26 +200,31 @@
       var active=random(i*5+8)>.66 || i>132&&random(i)>.34;
       var item=dom("span","team-cell"+(active?" active":"")+(i%9===0?" alt":""),undefined,grid);
       dom("span","",active?(i%4===0?"◇":i%6===0?"⌁":"◦"):"·",item);
-      item.title=active?"Agente ativo":"Agente em espera";
+      item.title=active?"Сотрудник активен":"Сотрудник ожидает";
     }
   }
   function updateClock(){
     var now=new Date();
     try{
-      var t=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"America/Sao_Paulo"}).format(now);
-      var day=new Intl.DateTimeFormat("pt-BR",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
+      var t=new Intl.DateTimeFormat("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"America/Sao_Paulo"}).format(now);
+      var day=new Intl.DateTimeFormat("ru-RU",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
       $("liveClock").textContent=t;
       $("liveDate").textContent=day.toUpperCase();
-      $("systemLabel").textContent="SINCRONIZADO "+t.slice(0,5);
-    }catch(e){$("liveClock").textContent=now.toLocaleTimeString("pt-BR");}
+      $("systemLabel").textContent="СИНХРОНИЗИРОВАНО "+t.slice(0,5);
+    }catch(e){$("liveClock").textContent=now.toLocaleTimeString("ru-RU");}
   }
   function renderCalendar(){
     var holder=$("miniCalendar");holder.textContent="";
-    ["D","S","T","Q","Q","S","S"].forEach(function(x){dom("span","",x,holder);});
-    var now=new Date(),weekday=(now.getDay()+6)%7;
-    for(var j=0;j<14;j++){
-      var day=now.getDate()+j-weekday;
-      dom("span",day===now.getDate()?"today":"",String(day),holder);
+    ["ВС","ПН","ВТ","СР","ЧТ","ПТ","СБ"].forEach(function(x){dom("span","",x,holder);});
+    var parts=new Intl.DateTimeFormat("ru-RU",{timeZone:"America/Sao_Paulo",year:"numeric",month:"numeric",day:"numeric"}).formatToParts(new Date());
+    function get(key){return Number(parts.find(function(p){return p.type===key;}).value);}
+    var year=get("year"),month=get("month"),today=get("day");
+    var start=new Date(Date.UTC(year,month-1,1)).getUTCDay();
+    var total=new Date(Date.UTC(year,month,0)).getUTCDate();
+    var cells=Math.ceil((start+total)/7)*7;
+    for(var j=0;j<cells;j++){
+      var num=j-start+1;
+      dom("span",num===today?"today":num<=0||num>total?"outside":"",num>0&&num<=total?String(num):"",holder);
     }
   }
   function renderCommand(){
@@ -223,7 +282,7 @@
     return svg("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:color,"stroke-width":width||.7,opacity:opacity===undefined?.3:opacity},parent);
   }
   function drawText(parent,x,y,str,color,size,anchor,extra){
-    var attrs={x:x,y:y,fill:color,"font-size":size||9,"font-family":"DM Mono, ui-monospace, monospace","letter-spacing":".03em","text-anchor":anchor||"middle"};
+    var attrs={x:x,y:y,fill:color,"font-size":size||9,"font-family":"IBM Plex Mono, ui-monospace, monospace","letter-spacing":".03em","text-anchor":anchor||"middle"};
     if(extra)Object.keys(extra).forEach(function(k){attrs[k]=extra[k];});
     return svg("text",attrs,parent,str);
   }
@@ -245,8 +304,8 @@
     box.textContent="";
     var h=dom("strong","",undefined,box),dot=dom("i","tip-dot",undefined,h);
     dot.style.background=accent(p.color||0);h.appendChild(document.createTextNode(p.name));
-    dom("small","",String(p.files||30)+" arquivos · "+(state.view==="departments"?"departamento":"pasta"),box);
-    dom("small","", "Clique em outro nó para explorar",box);
+    dom("small","",String(p.files||30)+ " файлов · "+(state.view==="departments"?"отдел":"папка"),box);
+    dom("small","", "Нажмите, чтобы отфильтровать по узлу",box);
     var x=ev.clientX-canvas.left+12,y=ev.clientY-canvas.top+12;
     x=clamp(x,10,Math.max(10,rect.width-box.offsetWidth-30));
     y=clamp(y,8,Math.max(8,rect.height-105));
@@ -289,7 +348,7 @@
         var dx=(band-4)*.018 +(random(i*500+j)-.5)*.012;
         var pt=polar(cx,cy,rr,a+dx),r=.95+random(j+i*9)*1.55;
         drawCircle(cluster,pt[0],pt[1],r,col,"none",0,.38+random(j+17)*.56);
-        if(state.names && state.zoom>1.5 && j<4)drawText(cluster,pt[0]+4,pt[1]-5,"arquivo "+(j+1),col,5,"start",{opacity:".65"});
+        if(state.names && state.zoom>1.5 && j<4)drawText(cluster,pt[0]+4,pt[1]-5,"файл "+(j+1),col,5,"start",{opacity:".65"});
       }
       var l=polar(cx,cy,327,a),isLeft=Math.cos(a)<-.2;
       var label=drawText(cluster,l[0],l[1],p.name,col,8,isLeft?"end":Math.cos(a)>.2?"start":"middle");
@@ -400,9 +459,9 @@
     else if(state.layout==="hex")hexLayout(group);
     else forceLayout(group);
     if(state.hud){
-      drawText(group,40,42,"TRACKTOR / SEGUNDO CÉREBRO",accent(0),10,"start",{opacity:".5"});
-      drawText(group,40,60,"MODE: "+state.layout.toUpperCase()+" · ARQUIVOS: 2209",accent(2),8,"start",{opacity:".4"});
-      drawText(group,1060,875,"MAX MUNHOZ · INTERACTIVE GRAPH","#476574",9,"end");
+      drawText(group,40,42,"TRACKTOR / ВТОРОЙ МОЗГ",accent(0),10,"start",{opacity:".5"});
+      drawText(group,40,60,"РЕЖИМ: "+state.layout.toUpperCase()+" · ФАЙЛОВ: 2209",accent(2),8,"start",{opacity:".4"});
+      drawText(group,1060,875,"MAX MUNHOZ · ИНТЕРАКТИВНАЯ КАРТА","#476574",9,"end");
     }
     updateTransform();
     hideDetails();
@@ -411,9 +470,9 @@
     state.page="brain";
     $("app").classList.replace("mode-command","mode-brain");
     $("commandPage").hidden=true;$("brainPage").hidden=false;
-    $("brandSection").textContent="Segundo Cérebro";
-    $("brandSubtitle").textContent="POR MAX MUNHOZ";
-    $("systemLabel").textContent="2209 ARQUIVOS · 137 ROTINAS";
+    $("brandSection").textContent="Второй мозг";
+    $("brandSubtitle").textContent="АВТОР: MAX MUNHOZ";
+    $("systemLabel").textContent="2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
     if(query){
       $("fileSearch").value=query;
       state.search=query;
@@ -427,8 +486,8 @@
     state.page="command";
     $("app").classList.replace("mode-brain","mode-command");
     $("brainPage").hidden=true;$("commandPage").hidden=false;
-    $("brandSection").textContent="Comando";
-    $("brandSubtitle").textContent="MAX MUNHOZ · AGENTE 05";
+    $("brandSection").textContent="Командный центр";
+    $("brandSubtitle").textContent="MAX MUNHOZ · АГЕНТ 05";
     document.body.classList.remove("presenting");
     renderCommand();
     updateClock();
@@ -460,9 +519,9 @@
     $("brandButton").addEventListener("click",openCommand);
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
     $("navBack").addEventListener("click",openCommand);
-    $("navRefresh").addEventListener("click",function(){renderCommand();notify("Painel atualizado");});
-    $("navTraffic").addEventListener("click",function(){openBrain();notify("Visão de tráfego");});
-    $("navFred").addEventListener("click",function(){openBrain();notify("Visão geral de arquivos");});
+    $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
+    $("navTraffic").addEventListener("click",function(){openBrain();notify("Раздел трафика (демо)");});
+    $("navFred").addEventListener("click",function(){openBrain();notify("Обзор файлов");});
     $("navPresent").addEventListener("click",function(){
       var active=!document.body.classList.contains("presenting");
       document.body.classList.toggle("presenting",active);
@@ -503,8 +562,8 @@
         var prefs={};
         ["layout","view","angle","force","size","names","theme","hud"].forEach(function(k){prefs[k]=state[k];});
         localStorage.setItem("tracktor-preferences",JSON.stringify(prefs));
-        $("saveFeedback").textContent="✓ Ajustes salvos neste navegador";
-      }catch(e){$("saveFeedback").textContent="Não foi possível salvar"; }
+        $("saveFeedback").textContent="✓ Настройки сохранены в браузере";
+      }catch(e){$("saveFeedback").textContent="Не удалось сохранить настройки"; }
     });
     $("exportPng").addEventListener("click",exportPNG);
     $("brainSvg").addEventListener("wheel",function(e){
@@ -565,14 +624,14 @@
       var ctx=canvas.getContext("2d");ctx.drawImage(image,0,0,2200,1840);
       URL.revokeObjectURL(url);
       canvas.toBlob(function(blob){
-        if(!blob){notify("Falha ao exportar PNG");return;}
+        if(!blob){notify("Не удалось создать PNG");return;}
         var a=document.createElement("a"),temp=URL.createObjectURL(blob);
         a.href=temp;a.download="tracktor-segundo-cerebro.png";document.body.appendChild(a);a.click();a.remove();
         setTimeout(function(){URL.revokeObjectURL(temp);},500);
-        notify("PNG exportado");
+        notify("PNG сохранён");
       },"image/png");
     };
-    image.onerror=function(){URL.revokeObjectURL(url);notify("Não foi possível exportar");};
+    image.onerror=function(){URL.revokeObjectURL(url);notify("Не удалось экспортировать карту");};
     image.src=url;
   }
   function restoreUI(){
@@ -582,7 +641,7 @@
     $("fileNames").checked=state.names;
     $("hudToggle").classList.toggle("active",state.hud);
   }
-  readSaved();renderWallet();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
+  readSaved();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
   updateClock();setInterval(updateClock,1000);
   if(location.hash==="#cerebro"||location.hash==="#brain")openBrain();
 })();
