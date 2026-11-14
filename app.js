@@ -347,7 +347,8 @@
   function attachNode(e,p,type){
     e.classList.add(type==="file"?"file-node":"group-node");
     e.setAttribute("data-name",p.name);
-    if(!matchSearch(p.name))e.setAttribute("opacity",".09");
+    if(p.group)e.setAttribute("data-group",p.group);
+    if(!matchSearch(p.group||p.name))e.setAttribute("opacity",".09");
     svg("title",{},e,p.name);
     e.addEventListener("pointerenter",function(ev){
       if(drag||dragged)return;
@@ -364,7 +365,8 @@
     e.addEventListener("click",function(ev){
       if(dragged)return;
       ev.stopPropagation();
-      state.focus=state.focus===p.name?null:p.name;
+      var name=p.group||p.name;
+      state.focus=state.focus===name?null:name;
       state.search="";
       $("fileSearch").value="";
       renderBrain();
@@ -388,8 +390,9 @@
     if(state.layout==="hex")return;
     var parent=$("mapViewport"),overlay=svg("g",{id:"hoverLinks",class:"hover-links","pointer-events":"none"},parent);
     var start=nodeCoords(element),all=Array.from(parent.querySelectorAll(".file-node, .group-node")).filter(function(el){return el!==element;});
-    var related=all.filter(function(el){return el.getAttribute("data-name")===p.name;});
-    var seed=projects.findIndex(function(proj){return proj.name===p.name;});
+    var name=p.group||p.name;
+    var related=all.filter(function(el){return el.getAttribute("data-name")===name||el.getAttribute("data-group")===name;});
+    var seed=projects.findIndex(function(proj){return proj.name===name;});
     if(seed<0)seed=0;
     var additional=all.filter(function(el,i){return i%(3+seed%4)===seed%3;}).slice(0,26);
     var targets=related.concat(additional.filter(function(el){return !related.includes(el);}));
@@ -406,9 +409,15 @@
     box.textContent="";
     var h=dom("strong","",undefined,box),dot=dom("i","tip-dot",undefined,h);
     dot.style.background=accent(p.color||0);h.appendChild(document.createTextNode(p.name));
-    var label=p.name==="CLAUDE.MD"?"центральный файл":state.view==="departments"?"отдел":"папка";
-    dom("small","",String(p.files||30)+" файлов · "+label,box);
-    dom("small","",state.focus===p.name?"НАЖМИТЕ, ЧТОБЫ СНЯТЬ ФИЛЬТР":"НАЖМИТЕ, ЧТОБЫ ОТФИЛЬТРОВАТЬ",box);
+    if(p.kind==="file"){
+      dom("small","","ФАЙЛ · "+(p.group||"Библиотека"),box);
+      dom("small","",p.path||"Внутренний документ",box);
+      dom("small","",p.size||"1,2 КБ",box);
+    }else{
+      var label=p.name==="CLAUDE.MD"?"центральный файл":state.view==="departments"?"отдел":"папка";
+      dom("small","",String(p.files||30)+" файлов · "+label,box);
+    }
+    dom("small","",state.focus===(p.group||p.name)?"НАЖМИТЕ, ЧТОБЫ СНЯТЬ ФИЛЬТР":"НАЖМИТЕ, ЧТОБЫ ОТФИЛЬТРОВАТЬ",box);
     var x=ev.clientX-rect.left+13,y=ev.clientY-rect.top+13;
     x=clamp(x,10,Math.max(10,rect.width-240));
     y=clamp(y,8,Math.max(8,rect.height-100));
@@ -485,6 +494,14 @@
       var x=55+random(i*11+800)*990,y=44+random(i*7+550)*825;
       drawCircle(parent,x,y,.4+random(i+60)*.8,accent(i%4),"none",0,.07+random(i+88)*.2);
     }
+  }
+  function demoFile(project,projectIndex,fileIndex){
+    var names=["память.md","агенты.md","данные.json","задачи.md","отчёт.csv","процессы.md",
+      "архив.json","связи.md","индекс.yaml","заметки.md","метрики.csv","проекты.md"];
+    var name=names[(projectIndex*7+fileIndex)%names.length];
+    return {name:name,kind:"file",group:project.name,color:project.color,
+      size:(.3+random(projectIndex*80+fileIndex)*6).toFixed(1).replace(".",",")+" КБ",
+      path:"/"+project.name.toLowerCase().replace(/\s+/g,"-")+"/"+name};
   }
   function rings(parent){
     var cx=545,cy=467;
