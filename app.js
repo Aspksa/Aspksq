@@ -396,16 +396,15 @@
   }
   function drawHoverLinks(element,p){
     clearHoverLinks();
-    if(state.layout==="hex")return;
     var parent=$("mapViewport"),overlay=svg("g",{id:"hoverLinks",class:"hover-links","pointer-events":"none"},parent);
     var start=nodeCoords(element),all=Array.from(parent.querySelectorAll(".file-node, .group-node")).filter(function(el){return el!==element;});
     var name=p.group||p.name;
     var related=all.filter(function(el){return el.getAttribute("data-name")===name||el.getAttribute("data-group")===name;});
     var seed=projects.findIndex(function(proj){return proj.name===name;});
     if(seed<0)seed=0;
-    var additional=all.filter(function(el,i){return i%(3+seed%4)===seed%3;}).slice(0,26);
-    var targets=related.concat(additional.filter(function(el){return !related.includes(el);}));
-    if(targets.length>32)targets=targets.slice(0,32);
+    // Connections are derived from nodes in the same demonstration group.
+    // Don't invent edges between unrelated departments.
+    var targets=related.slice(0,state.layout==="hex"?20:32);
     targets.forEach(function(el,i){
       var end=nodeCoords(el);
       if(Math.hypot(end[0]-start[0],end[1]-start[1])<15)return;
@@ -534,7 +533,7 @@
         var dx=(band-4)*.018 +(random(i*500+j)-.5)*.012;
         var pt=polar(cx,cy,rr,a+dx),r=.95+random(j+i*9)*1.55;
         drawCircle(cluster,pt[0],pt[1],r,col,"none",0,.38+random(j+17)*.56);
-        if(j%7===0){
+        if(j%2===0){
           var file=demoFile(p,i,j);
           attachNode(drawCircle(cluster,pt[0],pt[1],6.3,"transparent","none",0,1),file,"file");
         }
@@ -584,7 +583,7 @@
       for(var j=0;j<total;j++){
         var th=random(i*400+j)*Math.PI*2,rr=Math.sqrt(random(i*200+j+22))*radius*.85,pt=polar(pos[0],pos[1],rr,th);
         drawCircle(group,pt[0],pt[1],1.2+random(j+7)*2.2,col,"none",0,.44+random(j+8)*.54);
-        if(j%8===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
+        if(j%5===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
       }
       var count=state.expanded?Math.max(4,Math.min(18,Math.round(p.files/5))):3;
       for(var k=0;k<count;k++){
@@ -664,8 +663,8 @@
       for(var j=0;j<num;j++){
         var theta=random(i*111+j+6)*6.283,spread=Math.sqrt(random(j+12+i*50))*Math.min(110,r*.8),pt=polar(cx,cy,spread,theta);
         drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.8,c,"none",0,.3+random(j+11)*.55);
-        if(j%8===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
-        if(state.names&&state.zoom>1.6&&j%16===0){
+        if(j%5===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
+        if(((state.names&&state.zoom>1.6)||state.zoom>2.2)&&j%12===0){
           drawText(group,pt[0]+6,pt[1]-4,demoFile(p,i,j).name,c,6,"start",{opacity:".7"});
         }
       }
@@ -826,7 +825,10 @@
     }
     state.zoom=after;
     updateTransform();
-    if(state.names&&state.layout==="rings")renderBrain();
+    // Rebuild file captions only when crossing a visibility threshold.
+    // Otherwise preserve the SVG and keep zoom smooth.
+    var band=function(z){return z>2.2?2:state.names&&z>1.55?1:0;};
+    if(band(before)!==band(after))renderBrain();
   }
   function bind(){
     $("brandButton").addEventListener("click",openCommand);
@@ -901,6 +903,10 @@
       }catch(e){$("saveFeedback").textContent="Не удалось сохранить настройки"; }
     });
     $("exportPng").addEventListener("click",exportPNG);
+    $("brainSvg").addEventListener("dblclick",function(e){
+      e.preventDefault();
+      if(!dragged)changeZoom(1.9,e.clientX,e.clientY);
+    });
     $("brainSvg").addEventListener("wheel",function(e){
       e.preventDefault();
       changeZoom(e.deltaY<0?1.1:1/1.1,e.clientX,e.clientY);
