@@ -733,6 +733,7 @@
   }
   function openBrain(query){
     state.page="brain";
+    var firstOpening=!brainLoadedOnce;
     $("app").classList.replace("mode-command","mode-brain");
     if(!brainLoadedOnce){
       brainLoadedOnce=true;
@@ -743,6 +744,7 @@
       $("brainSettings").classList.remove("brain-settings-appearance");
       loaderTimer=setTimeout(function(){
         $("brainLoader").classList.add("hidden");
+        if(state.page==="brain")$("systemLabel").textContent="2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
         if(state.page==="brain"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
           $("mapViewport").classList.add("brain-first-appearance");
           $("brainSettings").classList.add("brain-settings-appearance");
@@ -756,7 +758,7 @@
     $("commandPage").hidden=true;$("brainPage").hidden=false;
     $("brandSection").textContent="Второй мозг";
     $("brandSubtitle").textContent="АВТОР: MAX MUNHOZ";
-    $("systemLabel").textContent="2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
+    $("systemLabel").textContent=firstOpening?"ЗАГРУЗКА КАРТЫ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
     state.focus=null;
     if(query){
       $("fileSearch").value=query;
