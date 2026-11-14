@@ -186,8 +186,17 @@
       row.addEventListener("click",function(){showClient(a);});
     });
     var alerts=$("alertItems");alerts.textContent="";
-    ["Праздник 7/09 · Муока, счета","Докер · Дайане","Проверка утренних счетов","Календарь публикаций · Муока","Публикация в соцсетях · Tojiro","План публикаций · Тодзиро","Новая задача · Механика Примус","Редактирование креативов","3 элемента ждут проверки"].forEach(function(t,i){
-      var e=dom("div","",undefined,alerts);dom("b","","0"+(i+1),e);e.appendChild(document.createTextNode(t));
+    [
+      ["09:00","Праздник 7/09 · Mooca: счёт R$ 27,86"],
+      ["06:10","Автоматизация Daiane выполнила действие"],
+      ["06:00","Поиск клиентов · утро 07/09"],
+      ["06:00","Reels Mooca · публикации на неделю"],
+      ["06:00","Автоматизация Tojiro ZN · просроченное обещание"],
+      ["05:30","Воронка за неделю · Tojiro Zona Norte"],
+      ["05:30","Воронка за неделю · Mecânica Primus"],
+      ["05:30","Воронка за неделю · Tojiro Mooca"]
+    ].forEach(function(t){
+      var e=dom("div","",undefined,alerts);dom("b","",t[0],e);e.appendChild(document.createTextNode(t[1]));
     });
   }
   function renderFunnel(){
