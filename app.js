@@ -451,7 +451,7 @@
     var start=nodeCoords(element),all=Array.from(parent.querySelectorAll(".file-node, .group-node")).filter(function(el){return el!==element;});
     var name=p.group||p.name;
     var related=all.filter(function(el){return el.getAttribute("data-name")===name||el.getAttribute("data-group")===name;});
-    var seed=projects.findIndex(function(proj){return proj.name===name;});
+    var seed=currentProjects().findIndex(function(proj){return proj.name===name;});
     if(seed<0)seed=0;
     // Connections are derived from nodes in the same demonstration group.
     // Don't invent edges between unrelated departments.
