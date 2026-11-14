@@ -114,7 +114,11 @@
     document.documentElement.style.setProperty("--accent",t.accent);
     document.documentElement.style.setProperty("--accent-rgb",t.rgb);
     document.documentElement.style.setProperty("--bg",t.bg);
-    document.querySelectorAll(".theme-item").forEach(function(e){e.classList.toggle("selected",e.dataset.theme===t.name);});
+    document.querySelectorAll(".theme-item").forEach(function(e){
+      var selected=e.dataset.theme===t.name;
+      e.classList.toggle("selected",selected);
+      e.setAttribute("aria-pressed",String(selected));
+    });
   }
   function renderHeaderIcons(){
     var paths={
@@ -141,13 +145,15 @@
       var strip=dom("span","theme-strip",undefined,item);
       t.colors.forEach(function(c){var dot=dom("i","",undefined,strip);dot.style.backgroundColor=c;});
       dom("span","theme-label",t.name,item);
+      item.setAttribute("aria-pressed",String(t.name===state.theme));
       if(t.name===state.theme)dom("small","", "ВЫБРАНА",item);
       item.addEventListener("click",function(){state.theme=t.name;applyTheme();renderThemes();renderBrain();renderCommand();});
     });
     applyTheme();
   }
-  var selectedClient=null;
+  var selectedClient=null,previousClientFocus=null;
   function showClient(account){
+    previousClientFocus=document.activeElement;
     selectedClient=account;
     $("clientModalTitle").textContent=account[0];
     var holder=$("clientModalFields");holder.textContent="";
@@ -165,7 +171,13 @@
     $("clientModal").classList.remove("hidden");
     $("closeClientModal").focus();
   }
-  function hideClient(){$("clientModal").classList.add("hidden");}
+  function hideClient(){
+    var wasOpen=!$("clientModal").classList.contains("hidden");
+    $("clientModal").classList.add("hidden");
+    if(wasOpen&&previousClientFocus&&previousClientFocus.isConnected){
+      previousClientFocus.focus();
+    }
+  }
   function commandTooltip(ev,account){
     var tooltip=$("commandTooltip"),rect=$("commandStage").getBoundingClientRect();
     tooltip.textContent="";
@@ -200,7 +212,7 @@
       ["09:00","Праздник 7/09 · Mooca: счёт R$ 27,86"],
       ["06:10","Автоматизация Daiane выполнила действие"],
       ["06:00","Поиск клиентов · утро 07/09"],
-      ["06:00","Reels Mooca · публикации на неделю"],
+      ["06:00","Ролики Mooca · публикации на неделю"],
       ["06:00","Автоматизация Tojiro ZN · просроченное обещание"],
       ["05:30","Воронка за неделю · Tojiro Zona Norte"],
       ["05:30","Воронка за неделю · Mecânica Primus"],
@@ -809,13 +821,21 @@
   }
   function setLayout(name){
     state.layout=name;
-    document.querySelectorAll("[data-layout]").forEach(function(e){e.classList.toggle("active",e.dataset.layout===name);});
+    document.querySelectorAll("[data-layout]").forEach(function(e){
+      var active=e.dataset.layout===name;
+      e.classList.toggle("active",active);
+      e.setAttribute("aria-pressed",String(active));
+    });
     resetPosition();
     renderBrain(true);
   }
   function setView(name){
     state.view=name;
-    document.querySelectorAll("[data-view]").forEach(function(e){e.classList.toggle("active",e.dataset.view===name);});
+    document.querySelectorAll("[data-view]").forEach(function(e){
+      var active=e.dataset.view===name;
+      e.classList.toggle("active",active);
+      e.setAttribute("aria-pressed",String(active));
+    });
     renderBrain(true);
   }
   function setRange(id,value,decimals){
@@ -985,7 +1005,7 @@
     document.addEventListener("keydown",function(e){
       if(e.key==="Escape"){
         hideClient();
-        $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
+        $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");$("navMenu").setAttribute("aria-expanded","false");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
         if(document.body.classList.contains("presenting")){document.body.classList.remove("presenting");if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}
         return;
       }
@@ -1025,8 +1045,14 @@
     image.src=url;
   }
   function restoreUI(){
-    document.querySelectorAll("[data-layout]").forEach(function(e){e.classList.toggle("active",e.dataset.layout===state.layout);});
-    document.querySelectorAll("[data-view]").forEach(function(e){e.classList.toggle("active",e.dataset.view===state.view);});
+    document.querySelectorAll("[data-layout]").forEach(function(e){
+      var active=e.dataset.layout===state.layout;
+      e.classList.toggle("active",active);e.setAttribute("aria-pressed",String(active));
+    });
+    document.querySelectorAll("[data-view]").forEach(function(e){
+      var active=e.dataset.view===state.view;
+      e.classList.toggle("active",active);e.setAttribute("aria-pressed",String(active));
+    });
     setRange("ringAngle",state.angle,2);setRange("ringForce",state.force,3);setRange("mapSize",state.size,2);
     $("fileNames").checked=state.names;
     $("hudToggle").classList.toggle("active",state.hud);
