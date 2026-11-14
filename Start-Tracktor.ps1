@@ -9,7 +9,7 @@ function Test-PythonCandidate {
     # Microsoft Store execution aliases may open the Store instead of Python.
     if ($Executable -like '*\Microsoft\WindowsApps\python*.exe') { return $null }
     try {
-        $probe = 'import sys, sqlite3; assert sys.version_info >= (3, 9); print(sys.executable)'
+        $probe = 'import sys, sqlite3; print(sys.executable) if sys.version_info >= (3, 9) else sys.exit(1)'
         $result = & $Executable @Prefix -c $probe 2>$null
         if ($LASTEXITCODE -eq 0 -and $result) {
             $actual = ([string](@($result)[-1])).Trim()

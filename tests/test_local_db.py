@@ -1,5 +1,5 @@
 """Real HTTP + SQLite tests, isolated from the user's database."""
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import http.client
 import json
 from pathlib import Path
@@ -107,7 +107,7 @@ class LocalDatabaseTests(unittest.TestCase):
                 self.assertEqual(status, 200)
                 backup_path = Path(temporary) / "backup.sqlite3"
                 backup_path.write_bytes(backup)
-                with sqlite3.connect(backup_path) as connection:
+                with closing(sqlite3.connect(backup_path)) as connection:
                     self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
                     self.assertEqual(connection.execute("SELECT name FROM skills").fetchone()[0], "/мой-навык")
                     self.assertEqual(json.loads(connection.execute("SELECT preferences FROM user_preferences").fetchone()[0]), preferences)
