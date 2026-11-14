@@ -27,7 +27,7 @@
   var projects = [
     {name:"TRACTOR",files:49,color:0},
     {name:"MAIN FRAME",files:64,color:0},
-    {name:"SR RAN BARBER SHOP",files:38,color:1},
+    {name:"SR MAN BARBER SHOP",files:38,color:1},
     {name:"INSTITUTO BELLA FACE - SER",files:42,color:2},
     {name:"GRUPO CENTURIÃO",files:52,color:3},
     {name:"DAIANE ROSENDO ADVOCACIA",files:54,color:0},
@@ -544,38 +544,64 @@
   }
   function hexLayout(parent){
     drawStars(parent,145);
-    var count=state.expanded?16:9;
-    var scale=.76+state.size*.55;
+    var tiles=[
+      ["TOJIRO MOOCA",240,-75,5],
+      ["PISSOLATTI VINHOS",550,-75,3],
+      ["POTECITAMENTE",860,-75,2],
+      ["MIRANDA SEGUROS",85,190,0],
+      ["GRUPO CENTURIÃO",395,190,4],
+      ["DAIANE ROSENDO ADVOCACIA",705,190,0],
+      ["MAISON ESTÉTICA SUDOESTE",-70,455,4],
+      ["INSTITUTO BELLA FACE - SER",240,455,2],
+      ["CLAUDE.MD",550,455,0],
+      ["DRA. FERNANDA",860,455,5],
+      ["JACQUE GOMES",85,720,3],
+      ["SR MAN BARBER SHOP",395,720,3],
+      ["TRACTOR",705,720,0],
+      ["HELLEN GESTÃO",240,985,3],
+      ["GRUPO PMS",550,985,0],
+      ["EXPO PEÇAS",860,985,3]
+    ];
+    var scale=.76+state.size*.55,r=165*scale;
     var kinds=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
-    for(var i=0;i<count;i++){
-      var col=i%4,row=Math.floor(i/4),p=i===5?{name:"CLAUDE.MD",files:1,color:0}:projects[(i*3+4)%projects.length],c=accent(p.color);
-      var cx=147+col*264,cy=141+row*223+(col%2)*111,r=148*scale;
+    tiles.slice(0,state.expanded?16:10).forEach(function(tile,i){
+      var found=projects.find(function(x){return x.name===tile[0];});
+      var p={name:tile[0],files:found?found.files:38,color:tile[3]};
+      var cx=tile[1],cy=tile[2],c=accent(p.color);
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
-      svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".045",
-        stroke:c,"stroke-opacity":".30","stroke-width":"1.5",class:"hex-cell"},group);
-      svg("polygon",{points:hexPath(cx,cy,r-9),fill:"none",stroke:c,"stroke-opacity":".10","stroke-width":".6"},group);
-      if(i===5){
+      svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".052",
+        stroke:c,"stroke-opacity":".34","stroke-width":"1.35",class:"hex-cell"},group);
+      svg("polygon",{points:hexPath(cx,cy,r-6),fill:"none",stroke:c,
+        "stroke-opacity":".08","stroke-width":".7"},group);
+      if(p.name==="CLAUDE.MD"){
         drawCenter(group,cx,cy);
+        for(var z=0;z<22;z++){
+          var a0=z/22*6.283,orbit=polar(cx,cy,73,a0);
+          drawBadge(group,orbit[0],orbit[1],6.8,c,kinds[z%kinds.length],.56);
+        }
       }else{
-        drawCircle(group,cx,cy,48,"none",c,1,.42);
-        drawCircle(group,cx,cy,6,c,"none",0,.77);
-        drawLine(group,[cx,cy],[cx+24,cy-6],c,.8,.36);
-        drawCircle(group,cx+24,cy-6,2.2,c,"none",0,.64);
+        drawCircle(group,cx,cy,45,"none",c,1,.37);
+        drawCircle(group,cx+22,cy-7,3,c,"none",0,.8);
+        drawLine(group,[cx,cy],[cx+22,cy-7],c,.9,.43);
       }
-      drawPlaque(group,cx,cy-65,p.name,c,"middle");
-      drawText(group,cx,cy-65,p.name,c,8,"middle",{class:"node-label"});
-      for(var j=0;j<(state.expanded?(i===5?66:p.files):15);j++){
-        var a=random(i*111+j+6)*6.283,rr=16+Math.sqrt(random(j+12+i*50))*Math.min(106,r*.78),pt=polar(cx,cy,rr,a);
-        drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.5,c,"none",0,.2+random(j+11)*.6);
+      var titleY=cy-60;
+      drawPlaque(group,cx,titleY,p.name,c,"middle");
+      drawText(group,cx,titleY,p.name,c,8,"middle",{class:"node-label"});
+      var num=state.expanded?p.files:Math.min(p.files,12);
+      for(var j=0;j<num;j++){
+        var theta=random(i*111+j+6)*6.283,spread=Math.sqrt(random(j+12+i*50))*Math.min(110,r*.8),pt=polar(cx,cy,spread,theta);
+        var dot=drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.8,c,"none",0,.3+random(j+11)*.55);
+        if(state.names&&state.zoom>1.6&&j%16===0){
+          drawText(group,pt[0]+6,pt[1]-4,"файл "+(j+1),c,6,"start",{opacity:".7"});
+        }
       }
-      var sides=Math.max(4,Math.round(6*state.size));
       for(var k=0;k<6;k++){
-        var pt2=polar(cx,cy,r,Math.PI/3*k+Math.PI/6);
-        drawBadge(group,pt2[0],pt2[1],9.2,c,kinds[(i+k)%kinds.length],.57);
-        attachNode(drawCircle(group,pt2[0],pt2[1],11,"transparent","none",0,1),p,"file");
+        var edge=polar(cx,cy,r,Math.PI/3*k+Math.PI/6);
+        drawBadge(group,edge[0],edge[1],9,c,kinds[(i+k)%kinds.length],.56);
+        attachNode(drawCircle(group,edge[0],edge[1],11,"transparent","none",0,1),p,"file");
       }
-      attachNode(drawCircle(group,cx,cy,Math.max(35,r*.46),"transparent","none",0,1),p,"group");
-    }
+      attachNode(drawCircle(group,cx,cy,Math.min(43,r*.42),"transparent","none",0,1),p,"group");
+    });
   }
   function forceLayout(parent){
     drawStars(parent,160);
