@@ -50,6 +50,16 @@ async function inspect(page, width, height, pageName) {
     else assert(canvas.x+canvas.width<=settings.x+4,'Настройки перекрывают карту');
   }
 }
+async function assertNoPanelOverlap(page,selector,axis){
+  const panels=page.locator(selector),count=await panels.count();
+  for(let i=0;i<count-1;i++){
+    const a=await panels.nth(i).boundingBox(),b=await panels.nth(i+1).boundingBox();
+    assert(a&&b,selector+': не удалось измерить панели');
+    if(axis==='x')assert(a.x+a.width<=b.x+2,selector+': соседние карточки перекрываются по горизонтали');
+    else assert(a.y+a.height<=b.y+2,selector+': соседние карточки перекрываются по вертикали');
+  }
+}
+
 async function checkAllCards(page,selector,expected){
   const cards=page.locator(selector);
   assert.equal(await cards.count(),expected,selector+': неверное число карточек');
@@ -220,6 +230,18 @@ async function screenshot(page,name){
       await page.goto(site,{waitUntil:'domcontentloaded'});
       await page.waitForSelector('#walletList .wallet-item',{timeout:15000});
       await inspect(page,vp.width,vp.height,'command');
+      const axis=vp.width<=700?'x':'y';
+      await assertNoPanelOverlap(page,'.command-left>.panel',axis);
+      await assertNoPanelOverlap(page,'.command-right>.panel',axis);
+      if(vp.width>=1100){
+        for(const selector of ['.command-left>.panel','.command-right>.panel']){
+          const panels=page.locator(selector);
+          for(let i=0;i<await panels.count();i++){
+            const b=await panels.nth(i).boundingBox();
+            assert(b.y>=48&&b.y+b.height<=vp.height-2,selector+'['+i+'] не помещается в первый экран');
+          }
+        }
+      }
       await screenshot(page,vp.id+'-command');
       await checkAllCards(page,'.command-left>.panel',3);
       await checkAllCards(page,'.command-right>.panel',4);
