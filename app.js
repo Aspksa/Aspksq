@@ -606,10 +606,13 @@
       var p={name:tile[0],files:found?found.files:38,color:tile[3]};
       var cx=tile[1],cy=tile[2],c=accent(p.color);
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
-      svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".052",
-        stroke:c,"stroke-opacity":".34","stroke-width":"1.35",class:"hex-cell"},group);
-      svg("polygon",{points:hexPath(cx,cy,r-6),fill:"none",stroke:c,
-        "stroke-opacity":".08","stroke-width":".7"},group);
+      // The central CLAUDE.MD hub in the footage sits in the empty space between the cells.
+      if(p.name!=="CLAUDE.MD"){
+        svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".052",
+          stroke:c,"stroke-opacity":".34","stroke-width":"1.35",class:"hex-cell"},group);
+        svg("polygon",{points:hexPath(cx,cy,r-6),fill:"none",stroke:c,
+          "stroke-opacity":".08","stroke-width":".7"},group);
+      }
       if(p.name==="CLAUDE.MD"){
         drawCenter(group,cx,cy);
         for(var z=0;z<22;z++){
