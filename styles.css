@@ -844,3 +844,17 @@ a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
 .cloud-reply{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow-y:auto;font:12px/1.6 var(--mono);color:#d8e9ef;margin:0}
 .cloud-reply:empty{display:none}
 @media(max-width:700px){.cloud-desktop-label{display:none}.cloud-mobile-label{display:inline}.cloud-button{padding-inline:6px}.cloud-fields input,.cloud-fields select{font-size:16px}.cloud-dialog{padding:20px 17px}.cloud-actions{gap:6px}.cloud-actions button{padding:8px}}
+
+/* Skill execution */
+.skill-dialog{width:min(95vw,650px);max-width:650px}
+.skill-dialog .dialog-note{font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.skill-dialog textarea{width:100%;resize:vertical;min-height:130px;max-height:360px;padding:11px;border:1px solid #31515e;border-radius:4px;background:#071620;color:#e0eff1;font:13px/1.6 var(--mono)}
+.skill-dialog textarea:focus{outline:1px solid var(--accent);border-color:var(--accent)}
+.skill-model{color:var(--accent)!important}
+.skill-feedback{font:12px/1.6 var(--sans);color:#a6dfcb;overflow-wrap:anywhere;min-height:20px}
+.skill-feedback.skill-error{color:#f2b29b}
+.skill-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:330px;overflow-y:auto;font:12px/1.7 var(--mono);color:#d8e9ef;margin:0}
+.skill-result:empty{display:none}
+@media(max-width:700px){.skill-dialog{padding:20px 17px}.skill-dialog textarea{font-size:16px}}
+
+.skill-result-heading{font:12px var(--sans);color:var(--text);margin:18px 0 10px}

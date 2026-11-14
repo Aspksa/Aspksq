@@ -22,7 +22,7 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def provider_request(path, api_key, data=None):
+def provider_request(path, api_key, data=None, timeout=40):
     if path not in ("models", "chat/completions"):
         raise CloudError("Неизвестный метод Cloud.ru")
     body = json.dumps(data, ensure_ascii=False).encode("utf-8") if data is not None else None
@@ -30,7 +30,7 @@ def provider_request(path, api_key, data=None):
                       headers={"Authorization": "Bearer " + api_key,
                                "Content-Type": "application/json", "Accept": "application/json"})
     try:
-        with build_opener(NoRedirect()).open(request, timeout=40) as response:
+        with build_opener(NoRedirect()).open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
             raise CloudError("Cloud.ru вернул слишком большой ответ", 502)
@@ -54,11 +54,31 @@ def provider_request(path, api_key, data=None):
             raise CloudError("Cloud.ru не принял запрос к модели. Обновите список и проверьте доступ к выбранной модели.", 400) from None
         raise CloudError("Cloud.ru временно недоступен или изменил адрес API. Повторите проверку позже.", 502) from None
     except (socket.timeout, TimeoutError):
-        raise CloudError("Cloud.ru не ответил вовремя. Повторите проверку позже.", 504) from None
+        raise CloudError("Cloud.ru не ответил вовремя. Повторите запрос позже.", 504) from None
     except (URLError, OSError):
         raise CloudError("Не удалось связаться с Cloud.ru. Проверьте интернет и доступ к foundation-models.api.cloud.ru.", 502) from None
     except (ValueError, UnicodeError):
         raise CloudError("Cloud.ru вернул некорректный JSON-ответ.", 502) from None
+
+
+def completion_result(response, api_key):
+    choices = response.get("choices") if isinstance(response, dict) else None
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise CloudError("Cloud.ru не вернул результат запроса к модели", 502)
+    choice = choices[0]
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        raise CloudError("Cloud.ru вернул неожиданный ответ модели", 502)
+    content = message.get("content")
+    if isinstance(content, list):
+        content = "\n".join(part.get("text", "") for part in content if isinstance(part, dict) and isinstance(part.get("text"), str))
+    if content is not None and not isinstance(content, str):
+        raise CloudError("Cloud.ru вернул неожиданный формат текста модели", 502)
+    reply = content.replace(api_key, "[ключ скрыт]") if isinstance(content, str) else ""
+    raw_usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
+    usage = {key:raw_usage[key] for key in ("prompt_tokens","completion_tokens","total_tokens")
+             if type(raw_usage.get(key)) is int and raw_usage[key] >= 0}
+    return {"reply":reply, "finish_reason":choice.get("finish_reason"), "usage":usage}
 
 
 def normalize_key(value):
@@ -150,21 +170,10 @@ class CloudRu:
             response = provider_request("chat/completions", row["api_key"], {
                 "model": row["model"], "messages": [{"role": "user", "content": "Ответь одним словом: работает."}],
                 "max_tokens": 128, "stream": False})
-            choices = response.get("choices")
-            if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
-                raise CloudError("Cloud.ru не вернул результат запроса к модели", 502)
-            choice = choices[0]
-            message = choice.get("message")
-            if not isinstance(message, dict):
-                raise CloudError("Cloud.ru вернул неожиданный ответ модели", 502)
-            content = message.get("content")
-            if isinstance(content, list):
-                content = "\n".join(part.get("text", "") for part in content if isinstance(part, dict) and isinstance(part.get("text"), str))
-            if content is not None and not isinstance(content, str):
-                raise CloudError("Cloud.ru вернул неожиданный формат текста модели", 502)
-            if not content and choice.get("finish_reason") != "length":
+            parsed = completion_result(response, row["api_key"])
+            reply = parsed["reply"]
+            if not reply and parsed["finish_reason"] != "length":
                 raise CloudError("Модель вернула пустой ответ. Выберите другую модель или повторите проверку.", 502)
-            reply = content.replace(row["api_key"], "[ключ скрыт]") if isinstance(content, str) else ""
             verified_at = datetime.now(timezone.utc).isoformat()
             with closing(self.connect(self.database)) as connection, connection:
                 changed = connection.execute("UPDATE cloudru_settings SET verified_at=? WHERE id=1 AND api_key=? AND model=?",

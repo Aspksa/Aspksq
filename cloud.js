@@ -152,4 +152,5 @@
       else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
     }
   });
+  window.TracktorCloudSettings={open:open};
 })();

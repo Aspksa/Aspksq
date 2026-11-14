@@ -13,18 +13,20 @@ import sys
 import tempfile
 import threading
 import time
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 import uuid
 import webbrowser
 
 from cloudru import CloudError, CloudRu
+from skillrunner import SkillRunner, catalog as skill_catalog, recover_interrupted
 
 ROOT = Path(__file__).resolve().parent
 STATIC_FILES = {"index.html": "text/html; charset=utf-8",
                 "styles.css": "text/css; charset=utf-8",
                 "app.js": "text/javascript; charset=utf-8",
                 "database.js": "text/javascript; charset=utf-8",
-                "cloud.js": "text/javascript; charset=utf-8"}
+                "cloud.js": "text/javascript; charset=utf-8",
+                "skills.js": "text/javascript; charset=utf-8"}
 TABLES = {"clients": "sort_order, name", "projects": "sort_order, name",
           "skills": "sort_order, name", "routines": "sort_order, scheduled_at",
           "tasks": "due_at", "notifications": "created_at DESC"}
@@ -44,9 +46,9 @@ def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 2:
+        if version > 3:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
-        if version == 2:
+        if version == 3:
             return
         connection.execute("BEGIN IMMEDIATE")
         schema = (ROOT / "sqlite-schema.sql").read_text(encoding="utf-8")
@@ -61,7 +63,7 @@ def initialize(database):
                     columns = ",".join(row)
                     placeholders = ",".join("?" for _ in row)
                     connection.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))
-        connection.execute("PRAGMA user_version=2")
+        connection.execute("PRAGMA user_version=3")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -113,7 +115,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         try:
-            if path in ("/api/cloud/settings", "/api/cloud/models"):
+            if path == "/api/skill-catalog":
+                self.send_json(200, {"data": skill_catalog(self.database, connect)})
+            elif path == "/api/skill-runs":
+                skill_id = parse_qs(urlsplit(self.path).query).get("skill_id", [""])[0]
+                self.send_json(200, SkillRunner(self.database, connect).latest(skill_id))
+            elif path.startswith("/api/skill-runs/"):
+                self.send_json(200, SkillRunner(self.database, connect).get(path.rsplit("/",1)[-1]))
+            elif path in ("/api/cloud/settings", "/api/cloud/models"):
                 cloud = CloudRu(self.database, connect)
                 self.send_json(200, cloud.settings() if path.endswith("settings") else cloud.models())
             elif path == "/api/status":
@@ -156,11 +165,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(403, {"error": "Разрешён только локальный доступ"})
             return
         path = urlsplit(self.path).path
-        if path not in ("/api/preferences", "/api/skills", "/api/cloud/settings", "/api/cloud/test"):
+        if path not in ("/api/preferences", "/api/skills", "/api/cloud/settings", "/api/cloud/test", "/api/skill-runs"):
             self.send_json(404, {"error": "Не найдено"})
             return
         try:
             data = self.read_json()
+            if path == "/api/skill-runs":
+                self.send_json(202, SkillRunner(self.database, connect).start(data))
+                return
             if path in ("/api/cloud/settings", "/api/cloud/test"):
                 cloud = CloudRu(self.database, connect)
                 self.send_json(200, cloud.save(data) if path.endswith("settings") else cloud.verify())
@@ -306,6 +318,7 @@ def main():
             return 0
         with create_server(args.port, database) as server:
             initialize(database)
+            recover_interrupted(database, connect)
             server.instance_id = uuid.uuid4().hex
             state = {"port": server.server_port, "instance_id": server.instance_id, "pid": os.getpid()}
             temporary_state = state_file.with_suffix(".tmp")
