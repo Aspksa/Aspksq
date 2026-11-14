@@ -59,7 +59,7 @@
     force:0.02,size:0.40,names:false,theme:"Океан",expanded:true,
     zoom:1,panX:0,panY:0,search:"",hud:false,selected:null,focus:null
   };
-  var drag = null, dragged = false, timerToast = 0;
+  var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, brainLoadedOnce = false;
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
     return x - Math.floor(x);
@@ -138,7 +138,7 @@
       row.addEventListener("click",function(){openBrain(a[0]);});
     });
     var alerts=$("alertItems");alerts.textContent="";
-    ["Система запросила копию","Новый процесс контента","3 элемента ждут проверки"].forEach(function(t,i){
+    ["Праздник 7/09 · Муока, счета","Докер · Дайане","Проверка утренних счетов","Календарь публикаций · Муока","Публикация в соцсетях · Tojiro","План публикаций · Тодзиро","Новая задача · Механика Примус","Редактирование креативов","3 элемента ждут проверки"].forEach(function(t,i){
       var e=dom("div","",undefined,alerts);dom("b","","0"+(i+1),e);e.appendChild(document.createTextNode(t));
     });
   }
@@ -269,6 +269,9 @@
       svg("circle",{cx:xy2[0],cy:xy2[1],r:.55+random(q+933)*1.45,fill:accent(q%6),opacity:random(q+441)*.35},root);
     }
     svg("text",{x:cx,y:cy+79,"text-anchor":"middle",fill:"#426774","font-family":"var(--mono)","font-size":"9","letter-spacing":"3"},root,"TRACKTOR");
+    var enter=svg("circle",{cx:cx,cy:cy,r:62,fill:"transparent",stroke:"transparent","stroke-width":1,class:"center-open-target"},root);
+    svg("title",{},enter,"Открыть Второй мозг");
+    enter.addEventListener("click",function(){openBrain();});
   }
   function matchSearch(name){
     if(state.focus&&name!==state.focus&&name!=="CLAUDE.MD")return false;
@@ -343,7 +346,6 @@
       drawLine(overlay,start,end,accent((p.color||0)+i%3),.85+i%4*.22,.36+i%4*.13);
       drawCircle(overlay,end[0],end[1],i%5===0?2.7:1.4,accent(p.color||0),"none",0,.75);
     });
-    element.parentNode.appendChild(element);
   }
   function showDetails(ev,p){
     var box=$("mapTooltip"),rect=$("brainSvg").getBoundingClientRect();
@@ -519,6 +521,12 @@
   function openBrain(query){
     state.page="brain";
     $("app").classList.replace("mode-command","mode-brain");
+    if(!brainLoadedOnce){
+      brainLoadedOnce=true;
+      $("brainLoader").classList.remove("hidden");
+      clearTimeout(loaderTimer);
+      loaderTimer=setTimeout(function(){$("brainLoader").classList.add("hidden");},680);
+    }
     $("commandPage").hidden=true;$("brainPage").hidden=false;
     $("brandSection").textContent="Второй мозг";
     $("brandSubtitle").textContent="АВТОР: MAX MUNHOZ";
@@ -535,6 +543,8 @@
   }
   function openCommand(){
     state.page="command";
+    clearTimeout(loaderTimer);
+    $("brainLoader").classList.add("hidden");
     $("app").classList.replace("mode-brain","mode-command");
     $("brainPage").hidden=true;$("commandPage").hidden=false;
     $("brandSection").textContent="Командный центр";
