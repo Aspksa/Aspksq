@@ -410,3 +410,39 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
   .mode-command .command-left,.mode-command .command-right,.mode-command .command-center,
   .mode-brain .brain-settings,.mode-brain .brain-canvas{animation:none!important}
 }
+
+/* Client cards and command tooltips recovered from the command screen */
+.command-tooltip{
+  position:absolute;z-index:8;max-width:230px;min-width:165px;pointer-events:none;
+  border:1px solid #2d4958;border-radius:4px;padding:9px 11px;
+  background:#091a27ee;box-shadow:0 10px 35px #0009;backdrop-filter:blur(7px);
+  color:#a8bfca;animation:tip-reveal .16s ease-out both
+}
+.command-tooltip strong{display:block;color:#c9e2e4;font:11px/1.3 var(--sans);margin-bottom:5px}
+.command-tooltip small{display:block;color:#688998;font:8px/1.6 var(--mono)}
+.command-tooltip em{display:block;margin-top:7px;font:8px var(--mono);font-style:normal;color:var(--accent);letter-spacing:.04em}
+.client-modal{position:fixed;inset:0;background:#01070cc9;z-index:42;display:grid;place-items:center;padding:16px;backdrop-filter:blur(4px)}
+.client-dialog{position:relative;width:min(95vw,425px);padding:24px 23px 18px;border:1px solid #34616a;border-radius:9px;
+  background:linear-gradient(125deg,#0e2230,#091723);box-shadow:0 28px 80px #000c}
+.client-close{position:absolute;top:11px;right:14px;font-size:23px;color:#8ba8b7;border:0;background:none}
+.client-dialog .dialog-kicker{margin:0;color:var(--accent);font:9px var(--mono);letter-spacing:.17em}
+.client-dialog h2{color:#e1f0f2;font:600 23px/1.3 var(--sans);margin:12px 0 17px}
+.client-dialog-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.client-dialog-fields div{background:#091923;border:1px solid #20394a;padding:12px;border-radius:5px}
+.client-dialog-fields small{display:block;font:8px var(--mono);color:#698797;letter-spacing:.09em;margin-bottom:7px}
+.client-dialog-fields strong{display:block;font:12px/1.35 var(--mono);color:#d3e7e8;word-break:break-word}
+.client-dialog-actions{margin-top:20px;display:flex;gap:8px}
+.client-dialog-actions button{font:10px var(--mono);padding:11px 12px;border:1px solid #345362;border-radius:4px;color:#b6ced5;background:#102535}
+.client-dialog-actions button:first-child{background:var(--accent);border-color:var(--accent);color:#052623;font-weight:600}
+.client-dialog .dialog-note{font:9px/1.6 var(--mono);color:#607c8c;margin:15px 0 0}
+.topbar .icon-button{display:inline-flex;align-items:center;justify-content:center}
+.topbar .icon-button svg{width:13px;height:13px;display:block}
+.team-cell.active:before{animation:agent-status 4.2s ease-in-out infinite}
+.team-cell.active:nth-child(5n):before{animation-delay:-2.4s}
+.team-cell.active:nth-child(9n):before{animation-delay:-3.1s}
+.team-cell.active:nth-child(13n):before{animation-delay:-.9s}
+@keyframes tip-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes agent-status{0%,100%{opacity:.49;box-shadow:0 0 1px transparent}50%{opacity:.87;box-shadow:0 0 10px #35d5b922}}
+@media(max-width:800px){.topbar .command-nav{gap:3px}.topbar .icon-button{min-width:21px;width:21px}}
+@media(max-width:640px){.topbar .command-nav #navContact,.topbar .command-nav #navSearch{display:none}.client-dialog{padding:20px}.client-dialog h2{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.team-cell.active:before,.command-tooltip{animation:none}}
