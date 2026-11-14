@@ -115,7 +115,7 @@
       var strip=dom("span","theme-strip",undefined,item);
       t.colors.forEach(function(c){var dot=dom("i","",undefined,strip);dot.style.backgroundColor=c;});
       dom("span","theme-label",t.name,item);
-      if(t.name==="Oceano")dom("small","", "EM USO",item);
+      if(t.name===state.theme)dom("small","", "EM USO",item);
       item.addEventListener("click",function(){state.theme=t.name;applyTheme();renderThemes();renderBrain();renderCommand();});
     });
     applyTheme();
@@ -278,17 +278,18 @@
     drawCenter(parent,cx,cy);
     var angles=[-90,-114,-75,-58,-42,-26,-10,5,19,34,49,65,88,105,122,140,158,180,202,237];
     projects.forEach(function(p,i){
-      var a=rad(angles[i]+state.angle*22),col=accent(p.color);
+      var a=rad(angles[i]+state.angle*22+(state.view==="folders"?(i%2?8:-8):0)),col=accent(p.color);
       var spotlight=matchSearch(p.name);
       var from=polar(cx,cy,103,a),to=polar(cx,cy,296,a);
       drawLine(parent,from,to,col,.6,spotlight?.17:.025);
       var cluster=svg("g",{opacity:spotlight?1:.1},parent);
-      for(var j=0;j<p.files;j++){
+      for(var j=0;j<(state.expanded?p.files:Math.min(p.files,10));j++){
         var band=j%9,level=Math.floor(j/9);
-        var rr=172+level*13+random(j*i+47)*10;
+        var rr=172+level*(13+state.force*85)+random(j*i+47)*10;
         var dx=(band-4)*.018 +(random(i*500+j)-.5)*.012;
         var pt=polar(cx,cy,rr,a+dx),r=.95+random(j+i*9)*1.55;
         drawCircle(cluster,pt[0],pt[1],r,col,"none",0,.38+random(j+17)*.56);
+        if(state.names && state.zoom>1.5 && j<4)drawText(cluster,pt[0]+4,pt[1]-5,"arquivo "+(j+1),col,5,"start",{opacity:".65"});
       }
       var l=polar(cx,cy,327,a),isLeft=Math.cos(a)<-.2;
       var label=drawText(cluster,l[0],l[1],p.name,col,8,isLeft?"end":Math.cos(a)>.2?"start":"middle");
@@ -296,8 +297,8 @@
       var nodePoint=polar(cx,cy,272,a);
       attachNode(drawCircle(cluster,nodePoint[0],nodePoint[1],12,"transparent","none",0,1),p,"group");
     });
-    for(var k=0;k<178;k++){
-      var angle=rad(-172+k*344/177)+state.angle*.035;
+    for(var k=0;k<(state.expanded?178:60);k++){
+      var angle=rad(-172+k*344/(state.expanded?177:59))+state.angle*.035;
       var rr=(k%3===0?451:k%3===1?423:399),pt=polar(cx,cy,rr,angle);
       var parentGroup=projects[k%projects.length],col=accent(Math.floor(k/20)%6);
       if(k%9===0){drawLine(parent,polar(cx,cy,365,angle),pt,"#466270",.6,.23);}
@@ -315,7 +316,7 @@
     [120,245,335].forEach(function(r){drawCircle(parent,cx,cy,r,"none","#35515d",.8,.25);});
     drawCenter(parent,cx,cy);
     projects.forEach(function(p,i){
-      var a=rad(-90+i*360/projects.length)+state.angle*.18;
+      var a=rad(-90+i*360/projects.length)+state.angle*.18+(state.view==="folders"?(i%2?-.08:.08):0);
       var radius=285+Math.sin(i*1.9)*45,pos=polar(cx,cy,radius,a),col=accent(p.color);
       var size=22+(p.files/5)*state.size;
       drawLine(parent,polar(cx,cy,90,a),pos,col,.7,.28);
@@ -460,7 +461,7 @@
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
     $("navBack").addEventListener("click",openCommand);
     $("navRefresh").addEventListener("click",function(){renderCommand();notify("Painel atualizado");});
-    $("navTraffic").addEventListener("click",function(){openBrain("tráfego");});
+    $("navTraffic").addEventListener("click",function(){openBrain();notify("Visão de tráfego");});
     $("navFred").addEventListener("click",function(){openBrain();notify("Visão geral de arquivos");});
     $("navPresent").addEventListener("click",function(){
       var active=!document.body.classList.contains("presenting");
