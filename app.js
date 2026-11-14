@@ -42,7 +42,7 @@
     {name:"PISSOLATTI VINHOS",files:36,color:0},
     {name:"MECÂNICA PRIMUS",files:45,color:0},
     {name:"T-MOTORS",files:35,color:0},
-    {name:"SKILLS",files:95,color:0},
+    {name:"SKILLS",files:192,color:0},
     {name:"TOTAL PROTEGE",files:30,color:3},
     {name:"MOTOR",files:29,color:1}
   ];
@@ -435,10 +435,11 @@
   function rings(parent){
     var cx=545,cy=467;
     drawStars(parent,190);
-    [100,165,305,383,420,451].forEach(function(r,i){
+    [100,165,305,389,453,505].forEach(function(r,i){
       drawCircle(parent,cx,cy,r,"none","#4c6370",i===5?1:.65,i===3?.30:i===5?.34:.18);
     });
     drawCenter(parent,cx,cy);
+    drawText(parent,cx,0,"ПРОЦЕССЫ","#566e7d",9,"middle",{"letter-spacing":"2"});
     var angles=[-90,-114,-75,-58,-42,-26,-10,5,19,34,49,65,88,105,122,140,158,180,202,237];
     projects.forEach(function(p,i){
       var a=rad(angles[i]+state.angle*22+(state.view==="folders"?(i%2?8:-8):0)),col=accent(p.color);
@@ -452,22 +453,27 @@
         var dx=(band-4)*.018 +(random(i*500+j)-.5)*.012;
         var pt=polar(cx,cy,rr,a+dx),r=.95+random(j+i*9)*1.55;
         drawCircle(cluster,pt[0],pt[1],r,col,"none",0,.38+random(j+17)*.56);
-        if(state.names && state.zoom>1.5 && j<4)drawText(cluster,pt[0]+4,pt[1]-5,"файл "+(j+1),col,5,"start",{opacity:".65"});
+        if((state.names&&state.zoom>1.5&&j<4)||(state.zoom>2.2&&j%17===0)){
+          var terms=["мозг","данные","память","операции","агенты","связи","заметки"];
+          drawText(cluster,pt[0]+5,pt[1]-5,(state.names?"файл "+(j+1):terms[(i+j)%terms.length]),col,6,"start",{opacity:".72"});
+        }
       }
       var l=polar(cx,cy,327,a),isLeft=Math.cos(a)<-.2;
-      var label=drawText(cluster,l[0],l[1],p.name,col,8,isLeft?"end":Math.cos(a)>.2?"start":"middle");
+      var anchor=isLeft?"end":Math.cos(a)>.2?"start":"middle";
+      drawPlaque(cluster,l[0],l[1],p.name,col,anchor);
+      var label=drawText(cluster,l[0],l[1],p.name,col,8,anchor);
       label.setAttribute("class","node-label");
       var nodePoint=polar(cx,cy,272,a);
       attachNode(drawCircle(cluster,nodePoint[0],nodePoint[1],12,"transparent","none",0,1),p,"group");
     });
     for(var k=0;k<(state.expanded?178:60);k++){
       var angle=rad(-172+k*344/(state.expanded?177:59))+state.angle*.035;
-      var rr=(k%3===0?451:k%3===1?423:399),pt=polar(cx,cy,rr,angle);
+      var rr=(k%3===0?505:k%3===1?479:450),pt=polar(cx,cy,rr,angle);
       var parentGroup=projects[k%projects.length],col=accent(Math.floor(k/20)%6),visible=matchSearch(parentGroup.name);
       if(k%9===0){drawLine(parent,polar(cx,cy,365,angle),pt,"#466270",.6,.23);}
-      var node=drawCircle(parent,pt[0],pt[1],k%7===0?8:7,"#0c1925",col,.8,visible?(.30+k%3*.07):.04);
-      drawCircle(parent,pt[0],pt[1],2,"none",col,.65,visible?.55:.05);
-      attachNode(drawCircle(parent,pt[0],pt[1],8,"transparent","none",0,1),parentGroup,"file");
+      var pictograms=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
+      drawBadge(parent,pt[0],pt[1],k%7===0?10.7:9.2,col,pictograms[k%pictograms.length],visible?(.53+k%4*.1):.07);
+      attachNode(drawCircle(parent,pt[0],pt[1],11,"transparent","none",0,1),parentGroup,"file");
     }
     if(!state.expanded){
       svg("rect",{x:0,y:0,width:1,height:1,fill:"none"},parent);
