@@ -640,8 +640,10 @@
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
       // The central CLAUDE.MD hub in the footage sits in the empty space between the cells.
       if(p.name!=="CLAUDE.MD"){
-        svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".052",
+        var tileShape=svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".052",
           stroke:c,"stroke-opacity":".34","stroke-width":"1.35",class:"hex-cell"},group);
+        // The entire hexagon is interactive, not just its inner hub.
+        attachNode(tileShape,p,"group");
         svg("polygon",{points:hexPath(cx,cy,r-6),fill:"none",stroke:c,
           "stroke-opacity":".08","stroke-width":".7"},group);
       }
