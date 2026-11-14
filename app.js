@@ -100,6 +100,13 @@
     if(oldTheme[state.theme])state.theme=oldTheme[state.theme];
     if(!["rings","circle","hex","force"].includes(state.layout))state.layout="rings";
     if(!["departments","folders"].includes(state.view))state.view="departments";
+    // Ignore malformed values or stale settings from older revisions.
+    state.angle=clamp(Number(state.angle)||0,-1,1);
+    state.force=clamp(Number(state.force)||0,0,.12);
+    state.size=clamp(Number(state.size)||.6,.15,.9);
+    state.names=Boolean(state.names);
+    state.plaque=Boolean(state.plaque);
+    state.hud=Boolean(state.hud);
     if(!themes.some(function(t){return t.name===state.theme;}))state.theme="Океан";
   }
   function applyTheme(){
@@ -145,7 +152,7 @@
     $("clientModalTitle").textContent=account[0];
     var holder=$("clientModalFields");holder.textContent="";
     var fields=[
-      ["ПОДПИСКА",account[1]?"R$ "+account[1]:"Не указана"],
+      ["ОПЛАТА В МЕСЯЦ",account[1]?"R$ "+account[1]:"Не указана"],
       ["НАПРАВЛЕНИЕ",account[2]||"Сопровождение"],
       ["СОСТОЯНИЕ",account[3]==="red"?"Требует внимания":account[3]==="green"?"Активен":"На проверке"],
       ["ИСТОЧНИК","Видеозапись · демо"]
@@ -183,7 +190,10 @@
       dom("span","wallet-pill",i%7===2?"САЙТ":"▸ ТРАФИК",right);
       row.title="Открыть "+a[0];
       row.style.cursor="pointer";
+      row.setAttribute("role","button");row.setAttribute("tabindex","0");
+      row.setAttribute("aria-label","Открыть карточку клиента: "+a[0]);
       row.addEventListener("click",function(){showClient(a);});
+      row.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showClient(a);}});
     });
     var alerts=$("alertItems");alerts.textContent="";
     [
@@ -253,7 +263,7 @@
   }
   function renderTeam(){
     var grid=$("teamGrid");grid.textContent="";
-    for(var i=0;i<154;i++){
+    for(var i=0;i<143;i++){
       var active=random(i*5+8)>.66 || i>132&&random(i)>.34;
       var item=dom("span","team-cell"+(active?" active":"")+(i%9===0?" alt":""),undefined,grid);
       dom("span","",active?(i%4===0?"◇":i%6===0?"⌁":"◦"):"·",item);
@@ -386,8 +396,10 @@
     return e;
   }
   function nodeCoords(el){
-    var a=Number(el.getAttribute("cx")),b=Number(el.getAttribute("cy"));
-    if(Number.isFinite(a)&&Number.isFinite(b))return [a,b];
+    if(el.hasAttribute("cx")&&el.hasAttribute("cy")){
+      var a=Number(el.getAttribute("cx")),b=Number(el.getAttribute("cy"));
+      if(Number.isFinite(a)&&Number.isFinite(b))return [a,b];
+    }
     var rect=el.getBBox();
     return [rect.x+rect.width/2,rect.y+rect.height/2];
   }
