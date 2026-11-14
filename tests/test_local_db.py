@@ -46,6 +46,19 @@ def request(port, path, data=None, headers=None, raw=None):
 
 
 class LocalDatabaseTests(unittest.TestCase):
+    def test_missing_database_is_not_silently_recreated(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            database = Path(temporary) / "tracktor.sqlite3"
+            saved = database.with_suffix(".saved")
+            with running(database) as port:
+                database.replace(saved)
+                status, error = request(port, "/api/clients")
+                self.assertEqual(status, 500)
+                self.assertIn("носителя", error["error"])
+                self.assertFalse(database.exists())
+                saved.replace(database)
+                self.assertEqual(len(request(port, "/api/clients")[1]), 19)
+
     def test_occupied_port_and_repeated_launches(self):
         with tempfile.TemporaryDirectory() as temporary, socket.socket() as occupied:
             occupied.bind(("127.0.0.1", 0))

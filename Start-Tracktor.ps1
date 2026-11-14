@@ -161,6 +161,33 @@ function Install-LocalPython {
     }
 }
 
+function Test-PortableStorage {
+    param([string]$ProjectDirectory)
+    $dataDirectory = Join-Path $ProjectDirectory 'data'
+    $probe = $null
+    $renamed = $null
+    try {
+        [IO.Directory]::CreateDirectory($dataDirectory) | Out-Null
+        $database = Join-Path $dataDirectory 'tracktor.sqlite3'
+        if ([IO.File]::Exists($database) -and (([IO.File]::GetAttributes($database) -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+            throw 'Файл базы имеет атрибут «Только чтение».'
+        }
+        $probe = Join-Path $dataDirectory ('.w-' + [guid]::NewGuid().ToString('N').Substring(0,16))
+        $renamed = $probe + '.renamed'
+        # SQLite needs both file writes and directory operations for its journal.
+        [IO.File]::WriteAllText($probe, 'TRACKTOR', (New-Object Text.UTF8Encoding($false)))
+        [IO.File]::Move($probe, $renamed)
+        [IO.File]::Delete($renamed)
+        return $dataDirectory
+    } catch {
+        throw ('Папка данных недоступна для записи: ' + $dataDirectory + '. Проверьте подключение флешки/диска, защиту от записи и права доступа. База должна оставаться в папке data рядом с приложением. ' + $_.Exception.Message)
+    } finally {
+        foreach ($path in @($probe, $renamed)) {
+            if ($path) { try { [IO.File]::Delete($path) } catch { } }
+        }
+    }
+}
+
 function Write-LauncherLog {
     param([string]$Message)
     if ($script:LogPath) {
@@ -172,6 +199,7 @@ if ($LibraryOnly) { return }
 
 $script:LogPath = $null
 $exitCode = 1
+$startupStage = 'storage'
 try {
     $utf8 = New-Object Text.UTF8Encoding($false)
     [Console]::OutputEncoding = $utf8
@@ -183,10 +211,10 @@ try {
             throw ('Не найден ' + $required + '. Сначала распакуйте архив целиком, затем запустите Aspksa.bat.')
         }
     }
-    $dataDirectory = Join-Path $PSScriptRoot 'data'
-    [IO.Directory]::CreateDirectory($dataDirectory) | Out-Null
+    $dataDirectory = Test-PortableStorage -ProjectDirectory $PSScriptRoot
     $script:LogPath = Join-Path $dataDirectory 'launcher.log'
     Write-LauncherLog ('Start: ' + $PSScriptRoot)
+    $startupStage = 'python'
     $managedDirectory = Join-Path $env:LOCALAPPDATA 'Aspksa\Python313'
     $managedPython = Join-Path $managedDirectory 'python.exe'
     # Serialize detection/installation across repeated clicks and project copies.
@@ -206,8 +234,10 @@ try {
         $mutex.Dispose()
     }
     Write-LauncherLog ('Python: ' + $python)
+    $startupStage = 'server'
     Write-Host 'Запускаю TRACKTOR. Окно сервера оставьте открытым.'
-    $serverArguments = @((Join-Path $PSScriptRoot 'server.py'))
+    # An absolute DB path keeps data next to this copy, regardless of working directory or drive letter.
+    $serverArguments = @((Join-Path $PSScriptRoot 'server.py'), '--database', (Join-Path $dataDirectory 'tracktor.sqlite3'))
     if ($env:TRACKTOR_NO_BROWSER -ne '1') { $serverArguments += '--open-browser' }
     # Inherit the console directly, avoiding shell expansion and stderr conversion.
     $server = New-PythonProcess -Executable $python -Arguments $serverArguments
@@ -221,7 +251,11 @@ try {
 } catch {
     Write-Host ('Ошибка запуска: ' + $_.Exception.Message) -ForegroundColor Red
     try { Write-LauncherLog ('ERROR: ' + $_.Exception.ToString()) } catch { }
-    Write-Host 'Если нет интернета, установите Python 3.9+ с https://www.python.org/downloads/ и повторите запуск.'
+    if ($startupStage -eq 'python') {
+        Write-Host 'Если нет интернета, установите Python 3.9+ с https://www.python.org/downloads/ и повторите запуск.'
+    } else {
+        Write-Host 'Проверьте, что архив распакован целиком, диск подключён и папка разрешает запись. При переносе сначала остановите сервер.'
+    }
     $exitCode = 1
 }
 exit $exitCode

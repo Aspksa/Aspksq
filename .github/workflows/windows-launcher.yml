@@ -9,6 +9,7 @@ on:
       - 'server.py'
       - 'tests/test_local_db.py'
       - 'tests/windows-launcher.ps1'
+      - 'tests/windows-portable.ps1'
       - '.github/workflows/windows-launcher.yml'
   pull_request:
   workflow_dispatch:
@@ -32,3 +33,6 @@ jobs:
         env:
           TRACKTOR_TEST_INSTALL_PYTHON: '1'
         run: .\tests\windows-launcher.ps1
+      - name: Test Desktop, Documents and portable FAT32/exFAT virtual drives
+        shell: powershell
+        run: .\tests\windows-portable.ps1

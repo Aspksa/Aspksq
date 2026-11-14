@@ -27,8 +27,11 @@ TABLES = {"clients": "sort_order, name", "projects": "sort_order, name",
           "tasks": "due_at", "notifications": "created_at DESC"}
 
 
-def connect(database):
-    connection = sqlite3.connect(database, timeout=10)
+def connect(database, create=False):
+    # Requests must never recreate a missing DB after a drive is disconnected
+    # or the folder is moved. Only first-run initialization may create it.
+    connection = sqlite3.connect(str(database) if create else database.as_uri() + "?mode=rw",
+                                 timeout=10, uri=not create)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys=ON")
     return connection
@@ -36,7 +39,7 @@ def connect(database):
 
 def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
-    with closing(connect(database)) as connection, connection:
+    with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         if version > 1:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
@@ -137,7 +140,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_body(200, (ROOT / name).read_bytes(), STATIC_FILES[name])
         except (OSError, sqlite3.Error):
             self.log_error("Failed to read local database or file")
-            self.send_json(500, {"error": "Не удалось прочитать файл или локальную базу"})
+            self.send_json(500, {"error": "Файл или база недоступны. Проверьте подключение носителя и папку приложения. Затем повторите запуск BAT."})
 
     def do_POST(self):
         if not self.allowed_request():
@@ -172,7 +175,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "Некорректный запрос: проверьте название, описание и формат JSON"})
         except sqlite3.Error:
             self.log_error("Failed to write local database")
-            self.send_json(500, {"error": "Не удалось сохранить данные в локальной базе"})
+            self.send_json(500, {"error": "Не удалось сохранить данные. Проверьте, что носитель подключён, на нём есть место и разрешена запись."})
 
 
 class InstanceLock:
