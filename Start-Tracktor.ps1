@@ -9,10 +9,10 @@ function Test-PythonCandidate {
     # Microsoft Store execution aliases may open the Store instead of Python.
     if ($Executable -like '*\Microsoft\WindowsApps\python*.exe') { return $null }
     try {
-        $probe = 'import sys, sqlite3; print(sys.executable) if sys.version_info >= (3, 9) else sys.exit(1)'
+        $probe = 'import sys, sqlite3, json; print(json.dumps(sys.executable, ensure_ascii=True)) if sys.version_info >= (3, 9) else sys.exit(1)'
         $result = & $Executable @Prefix -c $probe 2>$null
         if ($LASTEXITCODE -eq 0 -and $result) {
-            $actual = ([string](@($result)[-1])).Trim()
+            $actual = ([string](@($result)[-1])).Trim() | ConvertFrom-Json
             if (Test-Path -LiteralPath $actual -PathType Leaf) { return $actual }
         }
     } catch { }
