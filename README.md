@@ -1,49 +1,64 @@
-# TRACKTOR — Comando & Segundo Cérebro
+# TRACKTOR — Командный центр и Второй мозг
 
-Recriação web interativa, baseada em uma gravação de tela de referência.
+Интерактивная веб-версия интерфейса TRACKTOR, реконструированная по видеозаписи.
 
-## ▶ Executar
+## Как запустить
 
-Abra [index.html](./index.html) em um navegador moderno. Não é necessário instalar dependências, Node.js ou rodar um servidor de desenvolvimento.
+Откройте [index.html](./index.html) в современном браузере. Установка Node.js, сборка и сервер разработки не нужны.
 
-## Recursos
+**Технологии:** HTML, CSS, JavaScript и SVG без сторонних библиотек.
 
-- **Comando** — painel com carteira de clientes, equipe, relógio, avisos e mapa radial.
-- **Segundo Cérebro** — mapa SVG interativo com layouts **Anéis**, **Círculo**, **Hex** e **Força**.
-- Zoom com scroll, botões e teclado; arrastar para movimentar o mapa.
-- Busca de arquivos, foco em departamentos/pastas, expansão/recolhimento de nós.
-- Troca de temas de cores, ajuste de giro/tamanho/força, painel HUD.
-- Salvar preferências no navegador (localStorage).
-- Exportar o mapa atual para PNG.
-- Visualização adaptativa para desktop e celular.
+## Реализовано
 
-## Atalhos do mapa
+- **Командный центр:** список клиентов, радиальная схема, команда, уведомления, календарь, ближайшие дела, воронка за 7 дней, навыки и расписание процессов. Боковые панели прокручиваются независимо, как на видео.
+- **Второй мозг:** интерактивная карта с режимами «Кольца», «Круг», «Hex» и «Силы».
+- Наведение на узел подсвечивает связи и показывает информацию. Нажатие фильтрует карту; повторное нажатие снимает фильтр.
+- Колесо мыши, экранные кнопки и клавиатура изменяют масштаб; карту можно перетаскивать.
+- Поиск, переключение между отделами и папками, разворачивание и сворачивание узлов.
+- Настройка угла колец, силы и размера, вспомогательная HUD-панель, смена цветовых тем.
+- Сохранение пользовательских настроек в localStorage браузера.
+- Экспорт карты в PNG.
+- Загрузка «Собираем Второй мозг» при первом открытии.
+- Адаптивная версия для мобильных устройств.
 
-| Tecla | Ação |
+Все подписи меню, кнопок, подсказок и уведомлений переведены на русский. **Названия организаций, проектов и имена файлов сохранены на языке оригинала.**
+
+## Управление картой
+
+| Действие | Результат |
 | --- | --- |
-| `/` | Focar a busca |
-| `+` ou `=` | Zoom in |
-| `-` | Zoom out |
-| `0` | Recentrar |
-| `?` | Atalhos |
-| `Escape` | Fechar detalhes / sair da apresentação |
+| Прокрутка колеса мыши | Изменение масштаба |
+| Перетаскивание | Перемещение карты |
+| Наведение на узел | Связи и информация |
+| Щелчок по узлу | Фильтр по выбранной группе |
+| Повторный щелчок | Снять фильтр |
+| \`/\` | Перейти к поиску |
+| \`+\` или \`=\` | Увеличить карту |
+| \`-\` | Уменьшить карту |
+| \`0\` | Центрировать карту |
+| \`?\` | Показать горячие клавиши |
+| \`Esc\` | Закрыть карточку / снять фильтр / выйти из презентации |
 
-## 🌐 Publicação no GitHub Pages
+## Публикация на GitHub Pages
 
-O repositório inclui [um workflow de deploy](.github/workflows/pages.yml) que publica o conteúdo na branch `main`.
+В репозитории находится [workflow публикации](.github/workflows/pages.yml), который запускается при изменениях в ветке **main**.
 
-1. Em **Settings → Pages**, escolha **Build and deployment → Source → GitHub Actions**.
-2. Em **Actions**, acompanhe o workflow **Deploy TRACKTOR to GitHub Pages**.
-3. A página ficará em **https://aspksa.github.io/Aspksq/** após um deploy bem-sucedido.
+1. Откройте **Settings → Pages** вашего репозитория.
+2. В разделе **Build and deployment → Source** выберите **GitHub Actions**.
+3. В разделе **Actions** проверьте статус задачи **Deploy TRACKTOR to GitHub Pages**.
 
-> A publicação depende de GitHub Pages e Actions estarem habilitados nas configurações do repositório.
+После успешной публикации сайт будет доступен по адресу:
 
-## Estrutura
+**https://aspksa.github.io/Aspksq/**
 
-- `index.html`: páginas, painéis e controles.
-- `styles.css`: tema escuro, painel e interface responsiva.
-- `app.js`: visualização SVG, interações, persistência e exportação.
+> Для публикации должны быть разрешены GitHub Actions и GitHub Pages. Добавление workflow не означает, что Pages уже активирован.
 
-## Limitações da recriação
+## Структура проекта
 
-Os dados de contas, arquivos e agentes exibidos são **demonstrativos**. O vídeo de referência não contém a base de dados ou a lógica interna da aplicação original. Esta recriação reproduz a interface e as principais interações visíveis, mas não se conecta ao backend real.
+- [index.html](index.html) — экраны и элементы управления;
+- [styles.css](styles.css) — тёмное оформление, панели и адаптивность;
+- [app.js](app.js) — карты SVG, переходы, анимации, поиск, обработчики событий и сохранение настроек.
+
+## Ограничения
+
+Видеозапись не содержит исходного кода, полной структуры файлов и подключения к серверу. Поэтому данные аккаунтов, уведомлений, процессов, агентов и связей на карте — **демонстрационные**. Реализованное поведение имитирует видимые операции, но не заменяет оригинальную серверную логику TRACKTOR и не претендует на полную пиксельную идентичность.
