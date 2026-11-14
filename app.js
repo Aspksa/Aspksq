@@ -57,7 +57,7 @@
   var state = {
     page:"command",layout:"rings",view:"departments",angle:0.25,
     force:0.02,size:0.40,names:false,theme:"Океан",expanded:true,
-    zoom:1,panX:0,panY:0,search:"",hud:false,selected:null
+    zoom:1,panX:0,panY:0,search:"",hud:false,selected:null,focus:null
   };
   var drag = null, dragged = false, timerToast = 0;
   function random(seed) {
@@ -271,6 +271,7 @@
     svg("text",{x:cx,y:cy+79,"text-anchor":"middle",fill:"#426774","font-family":"var(--mono)","font-size":"9","letter-spacing":"3"},root,"TRACKTOR");
   }
   function matchSearch(name){
+    if(state.focus&&name!==state.focus&&name!=="CLAUDE.MD")return false;
     if(!state.search.trim())return true;
     function clean(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
     return clean(name).includes(clean(state.search.trim()));
@@ -359,10 +360,10 @@
     for(var k=0;k<(state.expanded?178:60);k++){
       var angle=rad(-172+k*344/(state.expanded?177:59))+state.angle*.035;
       var rr=(k%3===0?451:k%3===1?423:399),pt=polar(cx,cy,rr,angle);
-      var parentGroup=projects[k%projects.length],col=accent(Math.floor(k/20)%6);
+      var parentGroup=projects[k%projects.length],col=accent(Math.floor(k/20)%6),visible=matchSearch(parentGroup.name);
       if(k%9===0){drawLine(parent,polar(cx,cy,365,angle),pt,"#466270",.6,.23);}
-      var node=drawCircle(parent,pt[0],pt[1],k%7===0?8:7,"#0c1925",col,.8,.30+k%3*.07);
-      drawCircle(parent,pt[0],pt[1],2,"none",col,.65,.55);
+      var node=drawCircle(parent,pt[0],pt[1],k%7===0?8:7,"#0c1925",col,.8,visible?(.30+k%3*.07):.04);
+      drawCircle(parent,pt[0],pt[1],2,"none",col,.65,visible?.55:.05);
       attachNode(drawCircle(parent,pt[0],pt[1],8,"transparent","none",0,1),parentGroup,"file");
     }
     if(!state.expanded){
@@ -402,16 +403,19 @@
     var count=state.expanded?16:9;
     var scale=.76+state.size*.55;
     for(var i=0;i<count;i++){
-      var col=i%4,row=Math.floor(i/4),p=projects[(i*3+4)%projects.length],c=accent(p.color);
+      var col=i%4,row=Math.floor(i/4),p=i===5?{name:"CLAUDE.MD",files:1,color:0}:projects[(i*3+4)%projects.length],c=accent(p.color);
       var cx=147+col*264,cy=141+row*223+(col%2)*111,r=148*scale;
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
       svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":".045",stroke:c,"stroke-opacity":".23","stroke-width":"1.5",class:"hex-cell"},group);
       svg("polygon",{points:hexPath(cx,cy,r-9),fill:"none",stroke:c,"stroke-opacity":".10","stroke-width":".6"},group);
-      drawCircle(group,cx,cy,51,"none",c,.75,.3);
-      drawCircle(group,cx,cy,22,"none",c,1,.45);
-      drawCircle(group,cx,cy,5,c,"none",0,.65);
+      if(i===5)drawCenter(group,cx,cy);
+      else{
+        drawCircle(group,cx,cy,51,"none",c,.75,.3);
+        drawCircle(group,cx,cy,22,"none",c,1,.45);
+        drawCircle(group,cx,cy,5,c,"none",0,.65);
+      }
       drawText(group,cx,cy-65,p.name,c,8,"middle",{class:"node-label"});
-      for(var j=0;j<(state.expanded?p.files:15);j++){
+      for(var j=0;j<(state.expanded?(i===5?66:p.files):15);j++){
         var a=random(i*111+j+6)*6.283,rr=16+Math.sqrt(random(j+12+i*50))*90,pt=polar(cx,cy,rr,a);
         drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.5,c,"none",0,.2+random(j+11)*.6);
       }
@@ -473,6 +477,7 @@
     $("brandSection").textContent="Второй мозг";
     $("brandSubtitle").textContent="АВТОР: MAX MUNHOZ";
     $("systemLabel").textContent="2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
+    state.focus=null;
     if(query){
       $("fileSearch").value=query;
       state.search=query;
@@ -551,7 +556,7 @@
     });
     $("fileNames").addEventListener("change",function(e){state.names=e.target.checked;renderBrain();});
     $("hudToggle").addEventListener("click",function(){state.hud=!state.hud;this.classList.toggle("active",state.hud);renderBrain();});
-    $("fileSearch").addEventListener("input",function(e){state.search=e.target.value;renderBrain();});
+    $("fileSearch").addEventListener("input",function(e){state.search=e.target.value;state.focus=null;renderBrain();});
     $("expandAll").addEventListener("click",function(){state.expanded=true;renderBrain();});
     $("collapseAll").addEventListener("click",function(){state.expanded=false;renderBrain();});
     ["recenter","zoomReset"].forEach(function(id){$(id).addEventListener("click",function(){resetPosition();renderBrain();});});
@@ -587,15 +592,15 @@
       updateTransform();
       if(dragged)hideDetails();
     });
-    function stopDrag(e){drag=null;e.currentTarget.classList.remove("dragging");setTimeout(function(){dragged=false;},60);}
+    function stopDrag(e){drag=null;e.currentTarget.classList.remove("dragging");setTimeout(function(){dragged=false;},75);}
     $("brainSvg").addEventListener("pointerup",stopDrag);
     $("brainSvg").addEventListener("pointercancel",stopDrag);
-    $("brainSvg").addEventListener("click",function(e){if(!dragged&&e.target===$("brainSvg"))hideDetails();});
+    $("brainSvg").addEventListener("click",function(e){if(!dragged&&(e.target===$("brainSvg")||e.target===$("mapViewport"))){state.focus=null;hideDetails();clearHoverLinks();renderBrain();}});
     $("closeShortcuts").addEventListener("click",function(){$("shortcuts").classList.add("hidden");});
     $("shortcuts").addEventListener("click",function(e){if(e.target===this)this.classList.add("hidden");});
     document.addEventListener("keydown",function(e){
       if(e.key==="Escape"){
-        $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");hideDetails();
+        $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
         if(document.body.classList.contains("presenting")){document.body.classList.remove("presenting");if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}
         return;
       }
