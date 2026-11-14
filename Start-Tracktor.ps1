@@ -48,6 +48,26 @@ function Test-PythonCandidate {
     return $null
 }
 
+function Find-RegisteredPython {
+    param([string]$VersionPrefix = '')
+    foreach ($registryRoot in @('HKCU:\Software\Python\PythonCore', 'HKLM:\Software\Python\PythonCore', 'HKLM:\Software\WOW6432Node\Python\PythonCore')) {
+        if (-not (Test-Path -LiteralPath $registryRoot)) { continue }
+        foreach ($version in @(Get-ChildItem -LiteralPath $registryRoot -ErrorAction SilentlyContinue | Sort-Object PSChildName -Descending)) {
+            if ($VersionPrefix -and -not $version.PSChildName.StartsWith($VersionPrefix)) { continue }
+            $keyPath = Join-Path $version.PSPath 'InstallPath'
+            if (-not (Test-Path -LiteralPath $keyPath)) { continue }
+            $key = Get-Item -LiteralPath $keyPath
+            try {
+                $executable = $key.GetValue('ExecutablePath')
+                if (-not $executable -and $key.GetValue('')) { $executable = Join-Path $key.GetValue('') 'python.exe' }
+                $found = Test-PythonCandidate -Executable $executable
+                if ($found) { return $found }
+            } finally { $key.Close() }
+        }
+    }
+    return $null
+}
+
 function Find-Python {
     param([string]$ManagedPython)
     $found = Test-PythonCandidate -Executable $ManagedPython
@@ -60,6 +80,8 @@ function Find-Python {
             if ($found) { return $found }
         }
     }
+    $found = Find-RegisteredPython
+    if ($found) { return $found }
     $pythonRoot = Join-Path $env:LOCALAPPDATA 'Programs\Python'
     if (Test-Path -LiteralPath $pythonRoot) {
         foreach ($folder in @(Get-ChildItem -LiteralPath $pythonRoot -Directory | Sort-Object Name -Descending)) {
@@ -113,11 +135,22 @@ function Install-LocalPython {
         } finally { $ProgressPreference = $previousProgress }
         Assert-PythonSignature -Installer $installer
         Write-Host 'Подпись проверена. Устанавливаю Python для текущего пользователя…'
-        $arguments = @('/quiet', 'InstallAllUsers=0', 'PrependPath=0', 'Include_launcher=0', 'Include_test=0', 'Include_pip=0', 'Include_doc=0', 'Include_tcltk=0', ('TargetDir="' + $TargetDirectory + '"'))
+        $installLog = Join-Path $temporary 'installer.log'
+        $arguments = @('/quiet', '/log', ('"' + $installLog + '"'), 'InstallAllUsers=0', 'PrependPath=0', 'Include_launcher=0', 'Include_test=0', 'Include_pip=0', 'Include_doc=0', 'Include_tcltk=0', ('TargetDir="' + $TargetDirectory + '"'))
         $installation = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
         if ($installation.ExitCode -notin @(0, 3010)) { throw ('Установщик Python завершился с кодом ' + $installation.ExitCode + '.') }
         Write-Host ('Проверяю установленный Python: ' + (Join-Path $TargetDirectory 'python.exe'))
         $python = Test-PythonCandidate -Executable (Join-Path $TargetDirectory 'python.exe')
+        if (-not $python) {
+            # An existing installation of the exact release can enter maintenance
+            # mode and retain its registered location instead of TargetDir.
+            if ([IO.File]::Exists($installLog)) {
+                $details = @(Get-Content -LiteralPath $installLog | Select-String -Pattern 'TargetDir|Apply complete|error' | Select-Object -Last 20)
+                foreach ($line in $details) { Write-LauncherLog ([string]$line) }
+            }
+            $python = Find-RegisteredPython -VersionPrefix '3.13'
+        }
+
         if (-not $python) {
             if ($script:LogPath -and [IO.File]::Exists($script:LogPath)) { Write-Host ([IO.File]::ReadAllText($script:LogPath)) }
             throw ('Python установлен, но проверка Python и SQLite не пройдена. Файл существует: ' + [IO.File]::Exists((Join-Path $TargetDirectory 'python.exe')))
