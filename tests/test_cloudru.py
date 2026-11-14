@@ -163,6 +163,8 @@ class CloudRuTests(unittest.TestCase):
                 self.assertIsNone(request(port, "/api/cloud/settings")[1]["verified_at"])
                 with patch("cloudru.provider_request", return_value={"choices":[{"message":{"content":""}, "finish_reason":"stop"}]}):
                     self.assertEqual(request(port, "/api/cloud/test", {})[0], 502)
+                with patch("cloudru.provider_request", return_value={"choices":[{"message":{"content":{"unexpected":"object"}}, "finish_reason":"stop"}]}):
+                    self.assertEqual(request(port, "/api/cloud/test", {})[0], 502)
 
     def test_redirect_cannot_forward_credentials(self):
         received = []

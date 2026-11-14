@@ -80,7 +80,7 @@ assert.match(db, /fetch/);
 assert.match(db, /savePreferences/);
 assert.match(db, /listClients/);
 assert.match(db, /createSkill/);
-assert.match(schema, /CREATE TABLE clients/i);
-assert.match(schema, /CREATE TABLE user_preferences/i);
+assert.match(schema, /CREATE TABLE IF NOT EXISTS clients/i);
+assert.match(schema, /CREATE TABLE IF NOT EXISTS user_preferences/i);
 console.log('✓ Проверены интерфейс, локальный API, SQLite-схема, русские подписи и обработчики');
 

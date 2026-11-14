@@ -160,6 +160,8 @@ class CloudRu:
             content = message.get("content")
             if isinstance(content, list):
                 content = "\n".join(part.get("text", "") for part in content if isinstance(part, dict) and isinstance(part.get("text"), str))
+            if content is not None and not isinstance(content, str):
+                raise CloudError("Cloud.ru вернул неожиданный формат текста модели", 502)
             if not content and choice.get("finish_reason") != "length":
                 raise CloudError("Модель вернула пустой ответ. Выберите другую модель или повторите проверку.", 502)
             reply = content.replace(row["api_key"], "[ключ скрыт]") if isinstance(content, str) else ""
