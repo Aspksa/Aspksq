@@ -1,0 +1,34 @@
+name: TRACKTOR Windows launcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Aspksa.bat'
+      - 'Start-Tracktor.ps1'
+      - 'server.py'
+      - 'tests/test_local_db.py'
+      - 'tests/windows-launcher.ps1'
+      - '.github/workflows/windows-launcher.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test Windows file locks and SQLite
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Test genuine Python installer and actual BAT with special characters
+        shell: powershell
+        env:
+          TRACKTOR_TEST_INSTALL_PYTHON: '1'
+        run: .\tests\windows-launcher.ps1

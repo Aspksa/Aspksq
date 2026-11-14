@@ -1,13 +1,18 @@
 """Single-user TRACKTOR server. Python standard library only."""
 import argparse
 from contextlib import closing
+import errno
 from functools import partial
+import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
 import sqlite3
+import sys
 import tempfile
 import threading
+import time
 from urllib.parse import urlsplit
 import uuid
 import webbrowser
@@ -105,7 +110,8 @@ class Handler(BaseHTTPRequestHandler):
                 with closing(connect(self.database)) as connection:
                     connection.execute("SELECT 1 FROM user_preferences LIMIT 1")
                 self.send_json(200, {"storage": "sqlite", "single_user": True,
-                                     "database": str(self.database)})
+                                     "database": str(self.database), "app": "tracktor-local",
+                                     "instance_id": self.server.instance_id})
             elif path == "/api/preferences":
                 with closing(connect(self.database)) as connection:
                     row = connection.execute("SELECT preferences FROM user_preferences WHERE id=1").fetchone()
@@ -169,27 +175,144 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "Не удалось сохранить данные в локальной базе"})
 
 
+class InstanceLock:
+    """An OS lock, released even if a process or console is terminated."""
+    def __init__(self, database):
+        self.path = database.with_suffix(".lock")
+        self.file = None
+
+    def acquire(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.file = self.path.open("a+b")
+        if self.file.seek(0, 2) == 0:
+            self.file.write(b"0")
+            self.file.flush()
+        self.file.seek(0)
+        try:
+            if os.name == "nt":
+                import msvcrt
+                msvcrt.locking(self.file.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            self.file.close()
+            self.file = None
+            if error.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                raise
+            return False
+        return True
+
+    def release(self):
+        if self.file:
+            # Closing the handle releases the OS lock on Windows and POSIX.
+            self.file.close()
+            self.file = None
+
+
+def running_instance(database, state_file):
+    """Never trust a saved URL: verify the loopback service, DB and instance ID."""
+    connection = None
+    try:
+        state = json.loads(state_file.read_text(encoding="utf-8"))
+        port = state["port"]
+        if type(port) is not int or not 1 <= port <= 65535:
+            return None
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=0.5)
+        connection.request("GET", "/api/status")
+        response = connection.getresponse()
+        info = json.loads(response.read(16384))
+        if (response.status == 200 and info.get("app") == "tracktor-local"
+                and info.get("instance_id") == state["instance_id"]
+                and Path(info.get("database", "")).resolve() == database):
+            return f"http://127.0.0.1:{port}/"
+    except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
+        pass
+    finally:
+        if connection:
+            connection.close()
+    return None
+
+
+def wait_for_instance(database, state_file, timeout=15):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        url = running_instance(database, state_file)
+        if url:
+            return url
+        time.sleep(0.1)
+    raise RuntimeError("Сервер уже запускается, но пока не отвечает. Посмотрите data/launcher.log.")
+
+
+def open_ready_browser(database, state_file):
+    try:
+        url = wait_for_instance(database, state_file)
+        if not webbrowser.open(url):
+            print(f"Не удалось открыть браузер автоматически. Откройте: {url}", flush=True)
+    except (RuntimeError, webbrowser.Error) as error:
+        print(f"Не удалось открыть сайт: {error}", flush=True)
+
+
+def create_server(port, database):
+    handler = partial(Handler, database=database)
+    try:
+        return ThreadingHTTPServer(("127.0.0.1", port), handler)
+    except OSError as error:
+        if not port or error.errno not in (errno.EADDRINUSE, errno.EACCES):
+            raise
+        # Let the OS choose and bind a free port in one operation (no race).
+        return ThreadingHTTPServer(("127.0.0.1", 0), handler)
+
+
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = argparse.ArgumentParser(description="TRACKTOR: local SQLite server (one user)")
     parser.add_argument("--port", type=int, default=4173)
     parser.add_argument("--database", type=Path, default=ROOT / "data" / "tracktor.sqlite3")
     parser.add_argument("--open-browser", action="store_true")
     args = parser.parse_args()
+    if not 0 <= args.port <= 65535:
+        parser.error("Порт должен быть в диапазоне 0–65535")
     database = args.database.resolve()
+    state_file = database.with_suffix(".server.json")
+    lock = InstanceLock(database)
+    owns_lock = False
     try:
-        with ThreadingHTTPServer(("127.0.0.1", args.port), partial(Handler, database=database)) as server:
-            initialize(database)
-            url = f"http://127.0.0.1:{server.server_port}/"
-            print(f"TRACKTOR: {url}\nSQLite: {database}\nPress Ctrl+C to stop.", flush=True)
+        owns_lock = lock.acquire()
+        if not owns_lock:
+            url = wait_for_instance(database, state_file)
+            print(f"TRACKTOR: {url}\nПриложение уже работает. Второй сервер не запущен.", flush=True)
             if args.open_browser:
-                threading.Thread(target=webbrowser.open, args=(url,), daemon=True).start()
+                webbrowser.open(url)
+            return 0
+        with create_server(args.port, database) as server:
+            initialize(database)
+            server.instance_id = uuid.uuid4().hex
+            state = {"port": server.server_port, "instance_id": server.instance_id, "pid": os.getpid()}
+            temporary_state = state_file.with_suffix(".tmp")
+            temporary_state.write_text(json.dumps(state), encoding="utf-8")
+            temporary_state.replace(state_file)
+            url = f"http://127.0.0.1:{server.server_port}/"
+            print(f"TRACKTOR: {url}\nSQLite: {database}\nДля остановки нажмите Ctrl+C.", flush=True)
+            if args.port and server.server_port != args.port:
+                print(f"Порт {args.port} занят или недоступен. Выбран порт {server.server_port}.", flush=True)
+            if args.open_browser:
+                threading.Thread(target=open_ready_browser, args=(database, state_file), daemon=True).start()
             try:
                 server.serve_forever()
             except KeyboardInterrupt:
                 pass
-    except (OSError, sqlite3.Error, RuntimeError) as error:
-        print(f"Cannot start TRACKTOR: {error}")
+    except (OSError, sqlite3.Error, RuntimeError, webbrowser.Error) as error:
+        print(f"Не удалось запустить TRACKTOR: {error}", flush=True)
         return 1
+    finally:
+        if owns_lock:
+            try:
+                state_file.unlink(missing_ok=True)
+            except OSError:
+                pass
+            lock.release()
     return 0
 
 

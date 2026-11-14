@@ -1,18 +1,9 @@
 @echo off
-setlocal
-cd /d "%~dp0"
-where py >nul 2>nul
-if not errorlevel 1 (
-  py -3 server.py --open-browser
-  if errorlevel 1 pause
-  goto :eof
-)
-where python >nul 2>nul
-if not errorlevel 1 (
-  python server.py --open-browser
-  if errorlevel 1 pause
-  goto :eof
-)
-echo Python 3.9 or newer is required.
-echo Install it from https://www.python.org/downloads/ and enable Add Python to PATH.
+setlocal DisableDelayedExpansion
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0Start-Tracktor.ps1"
+set "TRACKTOR_EXIT=%ERRORLEVEL%"
+if "%TRACKTOR_EXIT%"=="0" exit /b 0
+echo.
+echo TRACKTOR could not start. See data\launcher.log.
 pause
+exit /b %TRACKTOR_EXIT%
