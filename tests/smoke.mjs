@@ -5,16 +5,27 @@ import { Script } from 'node:vm';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 const js = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const db = readFileSync(new URL('../database.js', import.meta.url), 'utf8');
+const schema = readFileSync(new URL('../supabase-schema.sql', import.meta.url), 'utf8');
+const config = readFileSync(new URL('../supabase-config.js', import.meta.url), 'utf8');
 
 new Script(js, { filename: 'app.js' });
+new Script(db, { filename: 'database.js' });
+assert.match(config, /TRACKTOR_SUPABASE_CONFIG/);
+assert.match(schema, /enable row level security/i, 'В БД должна быть включена RLS');
+assert.match(schema, /auth\.uid\(\)/i, 'Политики БД должны ограничивать строки пользователем');
+assert.doesNotMatch(config, /service_role|sb_secret_/i, 'Секретный ключ нельзя размещать в клиентской конфигурации');
 assert.match(html, /<html lang="ru">/, 'Русская локализация документа');
+assert.match(html, /<script src="database\.js" defer><\/script>/);
 assert.match(html, /<script src="app\.js" defer><\/script>/);
+assert.match(html, /id="accountButton"/);
+assert.match(html, /id="authModal"/);
 assert.match(html, /<link rel="stylesheet" href="styles\.css">/);
 
 const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
 const required = [
   'commandPage','commandSvg','commandTooltip','walletList','teamGrid','funnelList',
-  'skillsGrid','routineList','clientModal','clientOpenBrain','brainPage','brainSvg',
+  'skillsGrid','routineList','clientModal','clientModalNote','clientOpenBrain','authModal','accountButton','authEmail','authPassword','authSubmit','brainPage','brainSvg',
   'mapViewport','mapTooltip','brainLoader','layoutButtons','viewButtons','fileSearch',
   'plaqueToggle','hudToggle','ringAngle','ringForce','mapSize','fileNames','themeList',
   'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch'
@@ -27,7 +38,7 @@ for(const m of js.matchAll(/\$\("([^"]+)"\)/g)){
 }
 const handlers = [
   'renderHeaderIcons','renderWallet','renderFunnel','renderSkills','renderRoutines',
-  'renderTeam','renderCalendar','renderCommand','renderBrain','renderThemes','renderHex',
+  'renderTeam','renderCalendar','renderCommand','renderBrain','renderThemes','renderHex','syncDatabaseData','openAuthModal','submitAuth',
   'drawHoverLinks','changeZoom','showClient','exportPNG','readSaved'
 ];
 for(const fn of handlers.filter(x => x!=='renderHex')){
@@ -68,4 +79,10 @@ assert.match(js, /el\.hasAttribute\("cx"\)&&el\.hasAttribute\("cy"\)/, 'Нача
 assert.match(html, /<span class="mobile-only">НАЗАД<\/span>/, 'Есть короткая русская мобильная навигация');
 assert.match(js, /row\.setAttribute\("role","button"\)/, 'Строки клиентов доступны с клавиатуры');
 
-console.log('✓ Проверены синтаксис JavaScript, элементы интерфейса, анимации, русские подписи и обработчики');
+assert.match(db, /createClient/);
+assert.match(db, /savePreferences/);
+assert.match(db, /listClients/);
+assert.match(db, /createSkill/);
+assert.match(schema, /create table if not exists public\.clients/i);
+assert.match(schema, /create table if not exists public\.user_preferences/i);
+console.log('✓ Проверены интерфейс, Supabase-клиент, RLS-схема, русские подписи и обработчики');
