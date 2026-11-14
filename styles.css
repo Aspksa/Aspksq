@@ -446,3 +446,28 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
 @media(max-width:800px){.topbar .command-nav{gap:3px}.topbar .icon-button{min-width:21px;width:21px}}
 @media(max-width:640px){.topbar .command-nav #navContact,.topbar .command-nav #navSearch{display:none}.client-dialog{padding:20px}.client-dialog h2{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.team-cell.active:before,.command-tooltip{animation:none}}
+
+/* Accurate video-loading sequence: covers both map and settings, but not the header */
+.brain-page .brain-loader{
+  position:fixed;top:47px;right:0;bottom:0;left:0;inset:47px 0 0;
+  z-index:12;background:#050a10;align-items:center;justify-content:center;
+}
+.brain-loader .loader-label{font-size:8px;letter-spacing:.19em;color:#677785}
+.brain-loader .loader-track{height:1px;width:115px;background:#263440}
+.brain-loader .loader-track i{box-shadow:0 0 5px var(--accent);animation:loader-progress .65s ease both}
+.brain-page #mapViewport.brain-first-appearance{animation:brain-first-appearance 1.55s ease-in both}
+.brain-page .brain-settings.brain-settings-appearance{animation:settings-first-appearance .55s ease-out both}
+@keyframes brain-first-appearance{
+  0%{opacity:.04;filter:brightness(.42)}
+  25%{opacity:.17;filter:brightness(.57)}
+  52%{opacity:.51;filter:brightness(.75)}
+  100%{opacity:1;filter:brightness(1)}
+}
+@keyframes settings-first-appearance{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+@media(min-width:1300px){.brain-page .brain-loader{top:53px;inset:53px 0 0}}
+@media(min-width:641px) and (max-width:950px){.brain-page .brain-loader{top:33px;inset:33px 0 0}}
+@media(max-width:640px){.brain-page .brain-loader{top:44px;inset:44px 0 0}}
+@media(prefers-reduced-motion:reduce){
+  .brain-page #mapViewport.brain-first-appearance,
+  .brain-page .brain-settings.brain-settings-appearance{animation:none}
+}
