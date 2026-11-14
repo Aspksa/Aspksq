@@ -141,9 +141,9 @@ async function exerciseEveryControl(browser,errors){
 
     // Развернуть/свернуть должны реально менять количество файловых узлов.
     await click('#expandAll');
-    const expanded=await page.locator('#brainSvg .file-node').count();
+    const expanded=await page.locator('#mapViewport circle').count();
     await click('#collapseAll');
-    const collapsed=await page.locator('#brainSvg .file-node').count();
+    const collapsed=await page.locator('#mapViewport circle').count();
     assert(expanded>collapsed,'Кнопки «Развернуть всё» и «Свернуть всё» не меняют карту');
     await click('#expandAll');await click('#collapseAll');
     await click('#saveSettings');
