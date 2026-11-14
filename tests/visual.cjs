@@ -258,6 +258,10 @@ async function screenshot(page,name){
       await screenshot(page,vp.id+'-circle');
       await page.locator('[data-layout="hex"]').click();
       assert(await page.locator('#brainSvg .hex-cell').count()>=8,'Нет шестиугольных ячеек');
+      assert.equal(await page.locator('#brainSvg .center-label').textContent(),'CLAUDE.MD','Центральный CLAUDE.MD не сохранён');
+      const hexBounds=await page.locator('#mapViewport').evaluate(e=>{const b=e.getBBox();return {x:b.x,y:b.y,right:b.x+b.width,bottom:b.y+b.height};});
+      assert(hexBounds.x>=-2&&hexBounds.y>=-2&&hexBounds.right<=1102&&hexBounds.bottom<=922,
+        'Сетка «Соты» обрезана границами карты: '+JSON.stringify(hexBounds));
       await screenshot(page,vp.id+'-hex');
       // Hover tooltips, zoom and filtering should never crash.
       await page.locator('#zoomIn').click();
