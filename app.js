@@ -60,7 +60,7 @@
     zoom:1,panX:0,panY:0,search:"",hud:false,plaque:false,selected:null,focus:null
   };
   var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
-  var databaseSkills = [], databaseClients = null, databaseProjects = null, databaseRoutines = null, authMode = "signin";
+  var databaseSkills = [], databaseClients = null, databaseProjects = null, databaseRoutines = null;
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
     return x - Math.floor(x);
@@ -85,7 +85,7 @@
   function theme(){return themes.find(function(t){return t.name===state.theme;})||themes[2];}
   function accent(i){return theme().colors[((i%theme().colors.length)+theme().colors.length)%theme().colors.length];}
   function currentAccounts(){
-    if(!databaseClients||!databaseClients.length)return accounts;
+    if(databaseClients===null)return accounts;
     return databaseClients.map(function(c){
       var amount=c.monthly_fee===null||c.monthly_fee===undefined?"":Number(c.monthly_fee).toLocaleString("ru-RU");
       var status=c.status==="attention"?"red":c.status==="active"?"green":"grey";
@@ -93,11 +93,11 @@
     });
   }
   function currentProjects(){
-    if(!databaseProjects||!databaseProjects.length)return projects;
+    if(databaseProjects===null)return projects;
     return databaseProjects.map(function(p){return {name:p.name,files:Number(p.file_count)||0,color:Number(p.color_index)||0};});
   }
   function currentRoutines(){
-    if(!databaseRoutines||!databaseRoutines.length)return [
+    if(databaseRoutines===null)return [
       ["19:00","Проверка кредитного лимита","ТРЕКТОР · ПРОВЕРКА","СЛЕДУЮЩИЙ",true],
       ["19:25","Поиск рабочего номера","УТИЛИТА · ВЫЗОВ","В ОЧЕРЕДИ",false],
       ["20:30","Запросить номер у владельца","COBRA_RODIZIO · DOCKER","В ОЧЕРЕДИ",false],
@@ -184,13 +184,13 @@
     previousClientFocus=document.activeElement;
     selectedClient=account;
     $("clientModalTitle").textContent=account[0];
-    $("clientModalNote").textContent=account.source==="database"?"Данные клиента загружены из PostgreSQL.":"Демонстрационная карточка по данным из видеозаписи. Подключение к CRM не настроено.";
+    $("clientModalNote").textContent=account.source==="database"?"Данные клиента загружены из локальной базы SQLite.":"Демонстрационная карточка по данным из видеозаписи. Подключение к CRM не настроено.";
     var holder=$("clientModalFields");holder.textContent="";
     var fields=[
       ["ОПЛАТА В МЕСЯЦ",account[1]?"R$ "+account[1]:"Не указана"],
       ["НАПРАВЛЕНИЕ",account[2]||"Сопровождение"],
       ["СОСТОЯНИЕ",account[3]==="red"?"Требует внимания":account[3]==="green"?"Активен":"На проверке"],
-      ["ИСТОЧНИК","Видеозапись · демо"]
+      ["ИСТОЧНИК",account.source==="database"?"Локальная база":"Видеозапись · демо"]
     ];
     fields.forEach(function(field){
       var cell=dom("div","",undefined,holder);
@@ -315,8 +315,8 @@
       $("liveClock").textContent=t;
       $("liveDate").textContent=day.toUpperCase();
       var dbStatus=window.TracktorDB?window.TracktorDB.getStatus():"not-configured";
-      var dbLabel=dbStatus==="authenticated"?"БАЗА ОНЛАЙН":dbStatus==="signed-out"?"БАЗА · ВХОД":dbStatus==="connecting"?"БАЗА · ПОДКЛЮЧЕНИЕ":dbStatus==="sdk-missing"?"SDK НЕДОСТУПЕН":dbStatus==="error"?"ОШИБКА БАЗЫ":"ДЕМО-РЕЖИМ";
-      $("systemLabel").textContent=state.page==="brain"?(dbStatus==="authenticated"?"БАЗА ОНЛАЙН · 2209 ФАЙЛОВ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ"):dbLabel+(dbLabel==="ДЕМО-РЕЖИМ"?" · "+t.slice(0,5):"");
+      var dbLabel=dbStatus==="ready"?"ЛОКАЛЬНАЯ БАЗА":dbStatus==="connecting"?"БАЗА · ПОДКЛЮЧЕНИЕ":"БАЗА НЕДОСТУПНА";
+      $("systemLabel").textContent=dbLabel;
     }catch(e){$("liveClock").textContent=now.toLocaleTimeString("ru-RU");}
   }
   function renderCalendar(){
@@ -895,52 +895,27 @@
     if(band(before)!==band(after))renderBrain();
   }
 
-  function updateAuthUI(){
-    var user=window.TracktorDB.getUser();
-    $("accountButton").textContent=user?"АККАУНТ":"ВОЙТИ";
-    $("accountButton").title=user?("Аккаунт: "+user.email):"Войти и подключить данные";
-    $("accountButton").setAttribute("aria-label",user?("Аккаунт "+user.email):"Войти в базу данных");
+  function updateDatabaseUI(){
+    $("accountButton").textContent="БАЗА";
+    $("accountButton").title="Локальные данные и резервная копия";
+    $("accountButton").setAttribute("aria-label","Локальная база данных");
     updateClock();
   }
-  function openAuthModal(){
-    var user=window.TracktorDB.getUser(),configured=window.TracktorDB.isConfigured(),status=window.TracktorDB.getStatus();
-    authMode="signin";$("authTitle").textContent=user?"АККАУНТ TRACKTOR":"Вход в TRACKTOR";
-    $("authFields").classList.toggle("hidden",Boolean(user)||!configured);
-    $("authSubmit").classList.toggle("hidden",Boolean(user)||!configured);
-    $("authToggleMode").classList.toggle("hidden",Boolean(user)||!configured);
-    $("authSignOut").classList.toggle("hidden",!user);
-    $("authSubmit").textContent="ВОЙТИ";$("authToggleMode").textContent="Создать аккаунт";
-    if(user)$("authFeedback").textContent="Вы вошли как "+user.email+". Данные синхронизируются с PostgreSQL.";
-    else if(!configured)$("authFeedback").textContent="База ещё не подключена. Создайте проект Supabase, выполните supabase-schema.sql и внесите Project URL и Publishable key в supabase-config.js.";
-    else if(status==="sdk-missing")$("authFeedback").textContent="Библиотека Supabase не загрузилась. Проверьте подключение к CDN и обновите страницу.";
-    else $("authFeedback").textContent="Войдите по email и паролю или создайте новый аккаунт.";
+  function openDatabaseModal(){
+    $("authFeedback").textContent="Проверяем локальную базу…";
+    $("backupDatabase").disabled=true;
     $("authModal").classList.remove("hidden");
-    if(configured&&!user)$("authEmail").focus();else $("closeAuthModal").focus();
+    $("closeAuthModal").focus();
+    window.TracktorDB.getInfo().then(function(info){
+      $("authFeedback").textContent="Данные хранятся на этом компьютере: "+info.database+". Вход и регистрация не нужны.";
+      $("backupDatabase").disabled=false;
+    }).catch(function(){
+      $("authFeedback").textContent="Запустите Aspksa.bat и откройте http://127.0.0.1:4173/. Оставьте окно сервера открытым.";
+    });
   }
   function hideAuthModal(){$("authModal").classList.add("hidden");}
-  function toggleAuthMode(){
-    authMode=authMode==="signin"?"signup":"signin";
-    $("authTitle").textContent=authMode==="signup"?"Создание аккаунта":"Вход в TRACKTOR";
-    $("authSubmit").textContent=authMode==="signup"?"СОЗДАТЬ АККАУНТ":"ВОЙТИ";
-    $("authToggleMode").textContent=authMode==="signup"?"Уже есть аккаунт? Войти":"Создать аккаунт";
-    $("authPassword").setAttribute("autocomplete",authMode==="signup"?"new-password":"current-password");
-    $("authFeedback").textContent=authMode==="signup"?"После регистрации может потребоваться подтверждение email.":"Введите email и пароль.";
-  }
-  function submitAuth(){
-    var email=$("authEmail").value.trim(),password=$("authPassword").value;
-    if(!email||!password){$("authFeedback").textContent="Укажите email и пароль.";return;}
-    if(password.length<8){$("authFeedback").textContent="Пароль должен содержать не менее 8 символов.";return;}
-    var button=$("authSubmit");button.disabled=true;
-    $("authFeedback").textContent=authMode==="signup"?"Создаём аккаунт…":"Выполняем вход…";
-    var action=authMode==="signup"?window.TracktorDB.signUp(email,password):window.TracktorDB.signIn(email,password);
-    action.then(function(result){
-      if(authMode==="signup"&&!result.session){$("authFeedback").textContent="Аккаунт создан. Проверьте почту и подтвердите адрес, затем войдите.";return;}
-      hideAuthModal();notify(authMode==="signup"?"Аккаунт создан":"Вход выполнен");
-    }).catch(function(error){$("authFeedback").textContent=error.message||"Не удалось выполнить вход.";})
-      .finally(function(){button.disabled=false;});
-  }
   function syncDatabaseData(){
-    if(!window.TracktorDB.getUser()){
+    if(!window.TracktorDB.isReady()){
       databaseSkills=[];databaseClients=null;databaseProjects=null;databaseRoutines=null;
       renderSkills();renderWallet();renderRoutines();renderCommand();return Promise.resolve();
     }
@@ -959,18 +934,18 @@
         if(!themes.some(function(t){return t.name===state.theme;}))state.theme="Океан";
       }
       restoreUI();renderThemes();renderSkills();renderWallet();renderRoutines();renderBrain();renderCommand();
-    }).catch(function(error){notify("Ошибка загрузки базы: "+(error.message||"проверьте схему и права доступа"));});
+    });
   }
   function bind(){
     $("brandButton").addEventListener("click",openCommand);
-    $("accountButton").addEventListener("click",openAuthModal);
+    $("accountButton").addEventListener("click",openDatabaseModal);
     $("closeAuthModal").addEventListener("click",hideAuthModal);
     $("authModal").addEventListener("click",function(ev){if(ev.target===this)hideAuthModal();});
-    $("authToggleMode").addEventListener("click",toggleAuthMode);
-    $("authSubmit").addEventListener("click",submitAuth);
-    $("authPassword").addEventListener("keydown",function(ev){if(ev.key==="Enter")submitAuth();});
-    $("authSignOut").addEventListener("click",function(){
-      window.TracktorDB.signOut().then(function(){hideAuthModal();notify("Вы вышли из аккаунта");})
+    $("backupDatabase").addEventListener("click",function(){
+      var link=document.createElement("a");link.href="/api/backup";link.download="tracktor-backup.sqlite3";link.click();
+    });
+    $("retryDatabase").addEventListener("click",function(){
+      window.TracktorDB.init().then(function(){return syncDatabaseData();}).then(function(){updateDatabaseUI();openDatabaseModal();})
         .catch(function(error){$("authFeedback").textContent=error.message;});
     });
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
@@ -986,14 +961,17 @@
     });
     $("navContact").addEventListener("click",function(){notify("Контакты: подключение к серверу недоступно в демоверсии");});
     $("navSearch").addEventListener("click",function(){openBrain();$("fileSearch").focus();});
-    $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
+    $("navRefresh").addEventListener("click",function(){
+      window.TracktorDB.init().then(function(){return syncDatabaseData();}).then(function(){updateDatabaseUI();notify("Панель обновлена");})
+        .catch(function(error){notify("Не удалось обновить базу: "+error.message);});
+    });
     $("addSkill").addEventListener("click",function(){
-      if(!window.TracktorDB.getUser()){openAuthModal();notify("Войдите в аккаунт, чтобы сохранять навыки в базе");return;}
+      if(!window.TracktorDB.isReady()){openDatabaseModal();notify("Запустите Aspksa.bat, чтобы сохранять навыки");return;}
       var name=window.prompt("Название нового навыка:");
       if(!name||!name.trim())return;
       var description=window.prompt("Краткое описание (необязательно):")||"";
       window.TracktorDB.createSkill(name.trim(),description.trim()).then(function(skill){
-        databaseSkills.push(skill);renderSkills();notify("Навык сохранён в PostgreSQL");
+        databaseSkills.push(skill);renderSkills();notify("Навык сохранён в локальной базе");
       }).catch(function(error){notify(error.message||"Не удалось сохранить навык");});
     });
     $("navTraffic").addEventListener("click",function(){openBrain();notify("Раздел трафика (демо)");});
@@ -1045,16 +1023,17 @@
     $("zoomIn").addEventListener("click",function(){changeZoom(1.24);});
     $("zoomOut").addEventListener("click",function(){changeZoom(1/1.24);});
     $("saveSettings").addEventListener("click",function(){
-      try{
-        var prefs={};
-        ["layout","view","angle","force","size","names","theme","hud","plaque"].forEach(function(k){prefs[k]=state[k];});
-        localStorage.setItem("tracktor-preferences",JSON.stringify(prefs));
-        if(window.TracktorDB.getUser()){
-          $("saveFeedback").textContent="Сохраняем настройки в PostgreSQL…";
-          window.TracktorDB.savePreferences(prefs).then(function(){$("saveFeedback").textContent="✓ Настройки сохранены в базе и браузере";})
-            .catch(function(error){$("saveFeedback").textContent="Сохранено в браузере; ошибка БД: "+error.message;});
-        }else{$("saveFeedback").textContent="✓ В браузере. Войдите, чтобы синхронизировать с базой";}
-      }catch(e){$("saveFeedback").textContent="Не удалось сохранить настройки";}
+      var prefs={},savedInBrowser=false;
+      ["layout","view","angle","force","size","names","theme","hud","plaque"].forEach(function(k){prefs[k]=state[k];});
+      try{localStorage.setItem("tracktor-preferences",JSON.stringify(prefs));savedInBrowser=true;}catch(e){}
+      if(window.TracktorDB.isReady()){
+        $("saveFeedback").textContent="Сохраняем настройки в локальной базе…";
+        window.TracktorDB.savePreferences(prefs).then(function(){
+          $("saveFeedback").textContent=savedInBrowser?"✓ Настройки сохранены в базе и браузере":"✓ Настройки сохранены в базе";
+        }).catch(function(error){
+          $("saveFeedback").textContent=(savedInBrowser?"Сохранено в браузере; ошибка БД: ":"Не удалось сохранить: ")+error.message;
+        });
+      }else{$("saveFeedback").textContent=(savedInBrowser?"✓ В браузере. ":"")+"Запустите Aspksa.bat для сохранения в базе";}
     });
     $("exportPng").addEventListener("click",exportPNG);
     $("brainSvg").addEventListener("dblclick",function(e){
@@ -1181,9 +1160,8 @@
     $("plaqueToggle").setAttribute("aria-pressed",String(state.plaque));
   }
   readSaved();renderHeaderIcons();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
-  window.TracktorDB.onAuthChange(function(){updateAuthUI();syncDatabaseData();});
-  window.TracktorDB.init().then(function(){updateAuthUI();if(window.TracktorDB.getUser())syncDatabaseData();})
-    .catch(function(error){updateAuthUI();notify("Ошибка подключения к базе: "+error.message);});
+  window.TracktorDB.init().then(function(){updateDatabaseUI();if(window.TracktorDB.isReady())return syncDatabaseData();})
+    .catch(function(error){updateDatabaseUI();notify("Ошибка подключения к базе: "+error.message);});
   updateClock();setInterval(updateClock,1000);
   if(location.hash==="#cerebro"||location.hash==="#brain")openBrain();
 })();
