@@ -317,3 +317,29 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
  .wallet-item{height:34px}
  .funnel-item{min-height:31px}
 }
+
+/* Full-screen brain initialization, as seen in the source footage */
+.brain-loader{position:absolute;inset:0;z-index:6;background:#07111b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.loader-label{font:9px var(--mono);letter-spacing:.23em;color:#647782}
+.loader-track{width:140px;height:2px;background:#233443;position:relative;overflow:hidden}
+.loader-track i{position:absolute;left:0;top:0;bottom:0;width:55%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:loader-progress .65s ease-in-out both}
+@keyframes loader-progress{from{width:0}to{width:100%}}
+.brain-loader:not(.hidden)~#brainSvg{visibility:hidden}
+.command-svg .center-open-target{cursor:pointer}
+.command-svg .center-open-target:hover{stroke:var(--accent);stroke-opacity:.3}
+#brainSvg .file-node,#brainSvg .group-node{touch-action:none}
+.mini-calendar .outside{color:#294756}
+@media(max-width:950px){
+ .topbar{height:36px;flex-basis:36px}
+ .brand-mark{width:23px;height:23px}
+ .brand-copy strong{font-size:11px}
+ .brand-copy small{font-size:7px}
+ .top-action,.icon-button{height:24px}
+ .command-left .wallet-panel{height:calc(100vh - 146px)}
+ .command-right .team-panel{height:calc(100vh - 120px)}
+}
+@media(max-width:640px){
+ .topbar{height:44px;flex-basis:44px}
+ .command-left .wallet-panel,.command-right .team-panel{height:auto}
+ .brain-loader{gap:10px}
+}
