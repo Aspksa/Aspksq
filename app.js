@@ -56,7 +56,7 @@
   ];
   var state = {
     page:"command",layout:"rings",view:"departments",angle:0.25,
-    force:0.02,size:0.40,names:false,theme:"Океан",expanded:true,
+    force:0.02,size:0.60,names:false,theme:"Океан",expanded:true,
     zoom:1,panX:0,panY:0,search:"",hud:false,plaque:false,selected:null,focus:null
   };
   var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
