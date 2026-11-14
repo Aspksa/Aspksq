@@ -424,7 +424,7 @@
     svg("ellipse",{cx:cx-3,cy:cy+1,rx:20,ry:16,transform:"rotate(-40 "+(cx-3)+" "+(cy+1)+")"},logo);
     svg("ellipse",{cx:cx+5,cy:cy-3,rx:16,ry:20,transform:"rotate(35 "+(cx+5)+" "+(cy-3)+")"},logo);
     svg("ellipse",{cx:cx+1,cy:cy+1,rx:12,ry:16,transform:"rotate(72 "+(cx+1)+" "+(cy+1)+")"},logo);
-    drawText(parent,cx,cy+76,"CLAUDE.MD","#839da6",9,"middle",{"letter-spacing":"2",class:"center-label"});
+    drawText(parent,cx,cy+37,"CLAUDE.MD","#839da6",9,"middle",{"letter-spacing":"1",class:"center-label"});
     attachNode(drawCircle(parent,cx,cy,46,"transparent","none",0,1),
       {name:"CLAUDE.MD",files:1,color:0},"group");
   }
@@ -493,7 +493,8 @@
       drawCircle(parent,cx,cy,r,"none","#4c6370",i===5?1:.65,i===3?.30:i===5?.34:.18);
     });
     drawCenter(parent,cx,cy);
-    drawText(parent,cx,0,"ПРОЦЕССЫ","#566e7d",9,"middle",{"letter-spacing":"2"});
+    drawText(parent,cx,cy-116,"ПРОЦЕССЫ","#566e7d",8,"middle",{"letter-spacing":"2"});
+    drawText(parent,cx,cy-26,"ПАМЯТЬ","#688994",8,"middle",{"letter-spacing":"2"});
     var angles=[-90,-114,-75,-58,-42,-26,-10,5,19,34,49,65,88,105,122,140,158,180,202,237];
     projects.forEach(function(p,i){
       var a=rad(angles[i]+state.angle*22+(state.view==="folders"?(i%2?8:-8):0)),col=accent(p.color);
@@ -695,7 +696,7 @@
     else forceLayout(group);
     if(state.hud){
       drawText(group,40,42,"TRACKTOR / ВТОРОЙ МОЗГ",accent(0),10,"start",{opacity:".5"});
-      drawText(group,40,60,"РЕЖИМ: "+state.layout.toUpperCase()+" · ФАЙЛОВ: 2209",accent(2),8,"start",{opacity:".4"});
+      drawText(group,40,60,"РЕЖИМ: "+({rings:"КОЛЬЦА",circle:"КРУГ",hex:"СОТЫ",force:"СИЛОВАЯ"}[state.layout])+" · ФАЙЛОВ: 2209",accent(2),8,"start",{opacity:".4"});
       drawText(group,1060,875,"MAX MUNHOZ · ИНТЕРАКТИВНАЯ КАРТА","#476574",9,"end");
     }
     updateTransform();
