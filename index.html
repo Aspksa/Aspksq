@@ -167,6 +167,19 @@
         <footer class="settings-footer"><span class="status-dot"></span> 2209 ФАЙЛОВ · 137 ПРОЦЕССОВ <span>v 1.0</span></footer>
       </aside>
     </main>
+    <div class="client-modal hidden" id="clientModal" role="dialog" aria-modal="true" aria-labelledby="clientModalTitle">
+      <section class="client-dialog">
+        <button class="client-close" id="closeClientModal" aria-label="Закрыть карточку">×</button>
+        <p class="dialog-kicker">TRACKTOR · КАРТОЧКА КЛИЕНТА</p>
+        <h2 id="clientModalTitle">Клиент</h2>
+        <div class="client-dialog-fields" id="clientModalFields"></div>
+        <div class="client-dialog-actions">
+          <button id="clientOpenBrain">◎ Открыть карту знаний</button>
+          <button id="clientCloseButton">Закрыть</button>
+        </div>
+        <p class="dialog-note">Демонстрационная карточка по данным из видеозаписи. Подключение к CRM не настроено.</p>
+      </section>
+    </div>
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
     <div class="shortcuts hidden" id="shortcuts">
       <div class="shortcuts-card">
