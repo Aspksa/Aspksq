@@ -762,3 +762,32 @@ a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
   .command-left>.panel,.command-right>.panel{flex-shrink:0}
   .small-tag{font-size:7px;padding:2px 3px}
 }
+
+
+/* Compact command-center stack: no single panel consumes the whole column. */
+.command-left,.command-right{
+  height:100%;max-height:100%;overflow-y:auto;overflow-x:hidden;
+  align-self:stretch;scrollbar-width:thin;scrollbar-color:#294b5b transparent;
+}
+.command-left>.panel,.command-right>.panel{flex-shrink:0}
+@media(min-width:1100px){
+  .command-left .wallet-panel{flex:0 0 300px;height:300px;min-height:0}
+  .command-left .now-panel{flex:0 0 180px;height:180px;min-height:0}
+  .command-left .funnel-panel{flex:0 0 250px;height:250px;min-height:0}
+  .command-right .team-panel{flex:0 0 210px;height:210px;min-height:0}
+  .command-right .alerts-panel{flex:0 0 155px;height:155px;min-height:0}
+  .command-right .skills-panel{flex:0 0 210px;height:210px;min-height:0}
+  .command-right .routines-panel{flex:0 0 215px;height:215px;min-height:0}
+}
+@media(min-width:701px) and (max-width:1099px){
+  .command-left .wallet-panel{flex:0 0 250px;height:250px;min-height:0}
+  .command-left .now-panel{flex:0 0 170px;height:170px;min-height:0}
+  .command-left .funnel-panel{flex:0 0 220px;height:220px;min-height:0}
+  .command-right .team-panel{flex:0 0 185px;height:185px;min-height:0}
+  .command-right .alerts-panel{flex:0 0 145px;height:145px;min-height:0}
+  .command-right .skills-panel{flex:0 0 190px;height:190px;min-height:0}
+  .command-right .routines-panel{flex:0 0 190px;height:190px;min-height:0}
+}
+@media(max-width:700px){
+  .command-left,.command-right{height:100%;max-height:100%;overflow-x:auto;overflow-y:hidden}
+}
