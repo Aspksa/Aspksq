@@ -673,3 +673,42 @@ a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
  .command-center .command-stage-head{top:9px}
  .brain-settings{padding-top:7px}
 }
+
+
+/* Final interaction, contrast and text-fit polish */
+.app{min-height:0}
+.wallet-item[role=button]:focus-visible{
+  outline:2px solid var(--accent);outline-offset:-3px;
+  background:#122a36;border-radius:3px
+}
+.wallet-item[role=button]:hover{background:#112434}
+.theme-item:focus-visible,.mini-chip:focus-visible,.segmented button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px
+}
+.routine-row:hover,.funnel-item:hover{background:#102332}
+.panel-heading{overflow:hidden}
+.panel-heading>span{letter-spacing:.1em}
+.upcoming-head{letter-spacing:.12em}
+.wallet-name{line-height:1.3}
+.wallet-sub{line-height:1.45}
+.routine-time,.routine-status{font-variant-numeric:tabular-nums}
+#brainSvg .file-node,#brainSvg .group-node{cursor:pointer}
+.command-tooltip{max-width:min(235px,calc(100% - 14px))}
+.map-tooltip{max-width:min(260px,calc(100% - 14px))}
+@media(min-width:701px) and (max-width:800px){
+ .command-page{grid-template-columns:minmax(162px,25%) minmax(0,1fr) minmax(168px,27%);gap:6px;padding:6px}
+ .panel-heading{font-size:8px}
+ .panel-heading small{font-size:6.5px}
+ .command-left .now-panel{height:326px;min-height:326px}
+ .command-right .alerts-panel{height:315px;min-height:315px}
+ .skill-name{font-size:8px}
+}
+@media(max-width:700px){
+ .wallet-item{min-height:43px}
+ .wallet-item[role=button]:focus-visible{outline-offset:-3px}
+ .team-grid{max-height:calc(100% - 69px)}
+ .command-left .now-panel .clock-line{padding-top:10px}
+ .command-right .skills-panel .skills-footer{flex-shrink:0}
+ .command-right .routines-panel .routine-footer{flex-shrink:0}
+ .panel-heading small{font-size:8px}
+}
