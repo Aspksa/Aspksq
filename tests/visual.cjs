@@ -82,6 +82,9 @@ async function exerciseEveryControl(browser,errors){
     await page.goto(site,{waitUntil:'domcontentloaded'});
     await page.waitForSelector('#walletList .wallet-item',{timeout:15000});
     await checkAllCards(page,'.command-left>.panel',3);
+    await click('#accountButton');await visible('#authModal');
+    assert((await page.locator('#authFeedback').innerText()).includes('supabase-schema.sql'),'Окно аккаунта не объясняет настройку базы');
+    await click('#closeAuthModal');await hidden('#authModal');
     await checkAllCards(page,'.command-right>.panel',4);
 
     // Верхняя навигация: контакты, поиск, обновление, FRED, трафик, питание, логотип.
@@ -209,7 +212,9 @@ async function exerciseEveryControl(browser,errors){
       await visible('#toast');
     }
     await click('#addSkill');
-    assert((await page.locator('#toast').innerText()).includes('сервера оригинала'),'Кнопка добавления навыка не объясняет ограничение демо');
+    await visible('#authModal');
+    assert((await page.locator('#authFeedback').innerText()).includes('supabase-schema.sql'),'Кнопка добавления навыка не направляет к настройке базы');
+    await click('#closeAuthModal');await hidden('#authModal');
 
     // Возврат и клавиша логотипа.
     await click('#navBrain');await click('#brandButton');await visible('#commandPage');
