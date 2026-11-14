@@ -258,7 +258,7 @@
       var day=new Intl.DateTimeFormat("ru-RU",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
       $("liveClock").textContent=t;
       $("liveDate").textContent=day.toUpperCase();
-      $("systemLabel").textContent="ДЕМО-РЕЖИМ · "+t.slice(0,5);
+      $("systemLabel").textContent=state.page==="brain"?"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ":"ДЕМО-РЕЖИМ · "+t.slice(0,5);
     }catch(e){$("liveClock").textContent=now.toLocaleTimeString("ru-RU");}
   }
   function renderCalendar(){
