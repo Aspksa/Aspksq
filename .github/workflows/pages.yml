@@ -24,7 +24,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check JavaScript syntax
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check database.js
       - name: Check Russian UI and interactions
         run: node tests/smoke.mjs
       - name: Check whether GitHub Pages is enabled
