@@ -471,3 +471,10 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
   .brain-page #mapViewport.brain-first-appearance,
   .brain-page .brain-settings.brain-settings-appearance{animation:none}
 }
+
+/* Frame-by-frame fidelity correction: the recorded hub mark remains stationary,
+   and the hover relationships are continuous solid lines, not moving dashes. */
+#brainSvg .brain-center-logo{animation:none!important;transform:none!important}
+#brainSvg .center-ring{animation:none!important}
+#brainSvg #hoverLinks line{stroke-dasharray:none!important;animation:none!important}
+.upcoming p time{display:inline-block;margin-left:4px;font:9px var(--mono);color:var(--accent);white-space:nowrap}
