@@ -109,6 +109,23 @@
     document.documentElement.style.setProperty("--bg",t.bg);
     document.querySelectorAll(".theme-item").forEach(function(e){e.classList.toggle("selected",e.dataset.theme===t.name);});
   }
+  function renderHeaderIcons(){
+    var paths={
+      phone:["M21 16.5v3a2 2 0 0 1-2.2 2A18 18 0 0 1 2.5 5.2 2 2 0 0 1 4.5 3h3a1.8 1.8 0 0 1 1.8 1.5l.5 3.3a2 2 0 0 1-.6 1.8L8.7 11a15 15 0 0 0 4.3 4.3l1.4-1.4a2 2 0 0 1 1.8-.6l3.3.5A1.8 1.8 0 0 1 21 16.5Z"],
+      search:["M20 20l-4.6-4.6","M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"],
+      brain:["M12 3v18","M12 8H7L5 6","M12 12h6l2-2","M12 16H7L5 18","M5 8a3 3 0 0 1 0-6","M19 9a3 3 0 0 0 0-6","M5 16a3 3 0 0 0 0 6","M19 16a3 3 0 0 1 0 6"],
+      refresh:["M20 11a8 8 0 1 0-2.3 5.7","M20 4v7h-7"],
+      power:["M12 2v10","M6.2 5.5a9 9 0 1 0 11.6 0"],
+      menu:["M4 6h16","M4 12h16","M4 18h16"]
+    };
+    document.querySelectorAll("[data-ui-icon]").forEach(function(button){
+      var kind=button.getAttribute("data-ui-icon"),data=paths[kind]||[];
+      button.textContent="";
+      var root=svg("svg",{viewBox:"0 0 24 24",width:15,height:15,"aria-hidden":"true",
+        fill:"none",stroke:"currentColor","stroke-width":1.65,"stroke-linecap":"round","stroke-linejoin":"round"},button);
+      data.forEach(function(d){svg("path",{d:d},root);});
+    });
+  }
   function renderThemes(){
     var holder=$("themeList");holder.textContent="";
     themes.forEach(function(t){
@@ -210,7 +227,7 @@
       var day=new Intl.DateTimeFormat("ru-RU",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
       $("liveClock").textContent=t;
       $("liveDate").textContent=day.toUpperCase();
-      $("systemLabel").textContent="СИНХРОНИЗИРОВАНО "+t.slice(0,5);
+      $("systemLabel").textContent="ДЕМО-РЕЖИМ · "+t.slice(0,5);
     }catch(e){$("liveClock").textContent=now.toLocaleTimeString("ru-RU");}
   }
   function renderCalendar(){
@@ -675,8 +692,19 @@
     e.style.setProperty("--fill",(fraction*100)+"%");
   }
   function resetPosition(){state.zoom=1;state.panX=0;state.panY=0;updateTransform();}
-  function changeZoom(factor){
-    state.zoom=clamp(state.zoom*factor,.4,4);
+  function changeZoom(factor,mouseX,mouseY){
+    var before=state.zoom,after=clamp(before*factor,.4,5.5);
+    if(after===before)return;
+    if(typeof mouseX==="number"&&typeof mouseY==="number"){
+      var rect=$("brainSvg").getBoundingClientRect();
+      var unit=Math.min(rect.width/1100,rect.height/920);
+      var insetX=(rect.width-1100*unit)/2,insetY=(rect.height-920*unit)/2;
+      var targetX=(mouseX-rect.left-insetX)/unit,targetY=(mouseY-rect.top-insetY)/unit;
+      var baseX=(window.innerWidth>=641&&window.innerWidth<=950)?190:0;
+      state.panX+=(before-after)*(targetX-baseX-state.panX-550)/before;
+      state.panY+=(before-after)*(targetY-state.panY-460)/before;
+    }
+    state.zoom=after;
     updateTransform();
     if(state.names&&state.layout==="rings")renderBrain();
   }
@@ -684,6 +712,8 @@
     $("brandButton").addEventListener("click",openCommand);
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
     $("navBack").addEventListener("click",openCommand);
+    $("navContact").addEventListener("click",function(){notify("Контакты: подключение к серверу недоступно в демоверсии");});
+    $("navSearch").addEventListener("click",function(){openBrain();$("fileSearch").focus();});
     $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
     $("navTraffic").addEventListener("click",function(){openBrain();notify("Раздел трафика (демо)");});
     $("navFred").addEventListener("click",function(){openBrain();notify("Обзор файлов");});
@@ -744,7 +774,7 @@
     $("exportPng").addEventListener("click",exportPNG);
     $("brainSvg").addEventListener("wheel",function(e){
       e.preventDefault();
-      changeZoom(e.deltaY<0?1.1:1/1.1);
+      changeZoom(e.deltaY<0?1.1:1/1.1,e.clientX,e.clientY);
     },{passive:false});
     $("brainSvg").addEventListener("pointerdown",function(e){
       if(e.button!==0&&e.pointerType==="mouse")return;
@@ -820,7 +850,7 @@
     $("plaqueToggle").classList.toggle("active",state.plaque);
     $("plaqueToggle").setAttribute("aria-pressed",String(state.plaque));
   }
-  readSaved();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
+  readSaved();renderHeaderIcons();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
   updateClock();setInterval(updateClock,1000);
   if(location.hash==="#cerebro"||location.hash==="#brain")openBrain();
 })();
