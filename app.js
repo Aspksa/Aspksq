@@ -482,22 +482,40 @@
   function circleLayout(parent){
     var cx=545,cy=455;
     drawStars(parent,180);
-    [120,245,335].forEach(function(r){drawCircle(parent,cx,cy,r,"none","#35515d",.8,.25);});
+    [117,270,390,435].forEach(function(r){drawCircle(parent,cx,cy,r,"none","#35515d",.65,.17);});
     drawCenter(parent,cx,cy);
+    var sym=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
+    // In the source recording, departments become individual file bubbles orbiting the central document.
     projects.forEach(function(p,i){
-      var a=rad(-90+i*360/projects.length)+state.angle*.18+(state.view==="folders"?(i%2?-.08:.08):0);
-      var radius=285+Math.sin(i*1.9)*45,pos=polar(cx,cy,radius,a),col=accent(p.color);
-      var size=22+(p.files/5)*state.size;
-      drawLine(parent,polar(cx,cy,90,a),pos,col,.7,.28);
-      drawCircle(parent,pos[0],pos[1],size,"#0d202b",col,1,.40);
-      drawCircle(parent,pos[0],pos[1],size*.72,"none",col,.8,.17);
-      for(var j=0;j<(state.expanded?p.files:Math.round(p.files*.25));j++){
-        var th=random(i*400+j)*Math.PI*2,rr=Math.sqrt(random(i*200+j+22))*size*.7,pt=polar(pos[0],pos[1],rr,th);
-        drawCircle(parent,pt[0],pt[1],1.1+random(j+7)*1.7,col,"none",0,.42+random(j+8)*.5);
+      var a=rad(-90+i*360/projects.length)+state.angle*.14+(state.view==="folders"?(i%2?-.06:.06):0);
+      var distance=380+Math.sin(i*1.9)*27,pos=polar(cx,cy,distance,a),col=accent(p.color);
+      var radius=(p.name==="SKILLS"?75:28+p.files*.27)*(.81+state.size*.36);
+      var visible=matchSearch(p.name);
+      var group=svg("g",{opacity:visible?1:.13},parent);
+      drawCircle(group,pos[0],pos[1],radius,"#091b27",col,.95,.55);
+      drawCircle(group,pos[0],pos[1],radius*.67,"none",col,.8,.29);
+      drawCircle(group,pos[0],pos[1],5,col,"none",0,.9);
+      var total=state.expanded?p.files:Math.min(10,p.files);
+      for(var j=0;j<total;j++){
+        var th=random(i*400+j)*Math.PI*2,rr=Math.sqrt(random(i*200+j+22))*radius*.85,pt=polar(pos[0],pos[1],rr,th);
+        drawCircle(group,pt[0],pt[1],1.2+random(j+7)*2.2,col,"none",0,.44+random(j+8)*.54);
       }
-      drawText(parent,pos[0],pos[1]-size-10,p.name,col,8,"middle",{opacity:matchSearch(p.name)?1:.08,class:"node-label"});
-      attachNode(drawCircle(parent,pos[0],pos[1],size,"transparent","none",0,1),p,"group");
+      var count=state.expanded?Math.max(4,Math.min(18,Math.round(p.files/5))):3;
+      for(var k=0;k<count;k++){
+        var ba=-Math.PI/2+6.283*k/count,pp=polar(pos[0],pos[1],radius+16,ba);
+        drawBadge(group,pp[0],pp[1],8.5,col,sym[(i+k)%sym.length],.52);
+        attachNode(drawCircle(group,pp[0],pp[1],11,"transparent","none",0,1),p,"file");
+      }
+      var y=pos[1]-radius-22;
+      drawPlaque(group,pos[0],y,p.name,col,"middle");
+      drawText(group,pos[0],y,p.name,col,8,"middle",{class:"node-label"});
+      attachNode(drawCircle(group,pos[0],pos[1],radius*.9,"transparent","none",0,1),p,"group");
     });
+    // A necklace of small file badges follows the main document in the circle view.
+    for(var m=0;m<27;m++){
+      var pos2=polar(cx,cy,65,rad(-130+m*10));
+      drawBadge(parent,pos2[0],pos2[1],7.3,accent(0),sym[m%sym.length],.46);
+    }
   }
   function hexPath(cx,cy,r){
     var pts=[];
@@ -511,28 +529,35 @@
     drawStars(parent,145);
     var count=state.expanded?16:9;
     var scale=.76+state.size*.55;
+    var kinds=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
     for(var i=0;i<count;i++){
       var col=i%4,row=Math.floor(i/4),p=i===5?{name:"CLAUDE.MD",files:1,color:0}:projects[(i*3+4)%projects.length],c=accent(p.color);
       var cx=147+col*264,cy=141+row*223+(col%2)*111,r=148*scale;
       var group=svg("g",{opacity:matchSearch(p.name)?1:.13},parent);
-      svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":".045",stroke:c,"stroke-opacity":".23","stroke-width":"1.5",class:"hex-cell"},group);
+      svg("polygon",{points:hexPath(cx,cy,r),fill:c,"fill-opacity":state.plaque?".11":".045",
+        stroke:c,"stroke-opacity":".30","stroke-width":"1.5",class:"hex-cell"},group);
       svg("polygon",{points:hexPath(cx,cy,r-9),fill:"none",stroke:c,"stroke-opacity":".10","stroke-width":".6"},group);
-      if(i===5)drawCenter(group,cx,cy);
-      else{
-        drawCircle(group,cx,cy,51,"none",c,.75,.3);
-        drawCircle(group,cx,cy,22,"none",c,1,.45);
-        drawCircle(group,cx,cy,5,c,"none",0,.65);
+      if(i===5){
+        drawCenter(group,cx,cy);
+      }else{
+        drawCircle(group,cx,cy,48,"none",c,1,.42);
+        drawCircle(group,cx,cy,6,c,"none",0,.77);
+        drawLine(group,[cx,cy],[cx+24,cy-6],c,.8,.36);
+        drawCircle(group,cx+24,cy-6,2.2,c,"none",0,.64);
       }
+      drawPlaque(group,cx,cy-65,p.name,c,"middle");
       drawText(group,cx,cy-65,p.name,c,8,"middle",{class:"node-label"});
       for(var j=0;j<(state.expanded?(i===5?66:p.files):15);j++){
-        var a=random(i*111+j+6)*6.283,rr=16+Math.sqrt(random(j+12+i*50))*90,pt=polar(cx,cy,rr,a);
+        var a=random(i*111+j+6)*6.283,rr=16+Math.sqrt(random(j+12+i*50))*Math.min(106,r*.78),pt=polar(cx,cy,rr,a);
         drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.5,c,"none",0,.2+random(j+11)*.6);
       }
+      var sides=Math.max(4,Math.round(6*state.size));
       for(var k=0;k<6;k++){
         var pt2=polar(cx,cy,r,Math.PI/3*k+Math.PI/6);
-        drawCircle(group,pt2[0],pt2[1],8,"#0c1b28",c,1,.55);
+        drawBadge(group,pt2[0],pt2[1],9.2,c,kinds[(i+k)%kinds.length],.57);
+        attachNode(drawCircle(group,pt2[0],pt2[1],11,"transparent","none",0,1),p,"file");
       }
-      attachNode(drawCircle(group,cx,cy,Math.max(35,r*.5),"transparent","none",0,1),p,"group");
+      attachNode(drawCircle(group,cx,cy,Math.max(35,r*.46),"transparent","none",0,1),p,"group");
     }
   }
   function forceLayout(parent){
