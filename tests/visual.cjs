@@ -5,10 +5,11 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+const { spawn } = require('node:child_process');
+const os = require('node:os');
 
 const root = path.resolve(__dirname, '..');
-const site = pathToFileURL(path.join(root, 'index.html')).href;
+let site;
 const output = path.join(root, 'artifacts', 'screenshots');
 fs.mkdirSync(output, { recursive: true });
 
@@ -83,14 +84,18 @@ async function exerciseEveryControl(browser,errors){
     await page.waitForSelector('#walletList .wallet-item',{timeout:15000});
     await checkAllCards(page,'.command-left>.panel',3);
     await click('#accountButton');await visible('#authModal');
-    assert((await page.locator('#authFeedback').innerText()).includes('supabase-schema.sql'),'Окно аккаунта не объясняет настройку базы');
+    await page.waitForFunction(()=>document.querySelector('#authFeedback').textContent.includes('Вход и регистрация не нужны'));
+    assert.equal(await page.locator('input[type=password]').count(),0,'Локальная версия не требует пароля');
+    const backupDownload=page.waitForEvent('download');
+    await click('#backupDatabase');
+    assert.equal((await backupDownload).suggestedFilename(),'tracktor-backup.sqlite3');
     await click('#closeAuthModal');await hidden('#authModal');
     await checkAllCards(page,'.command-right>.panel',4);
 
     // Верхняя навигация: контакты, поиск, обновление, FRED, трафик, питание, логотип.
     await click('#navContact');await visible('#toast');
     assert((await page.locator('#toast').innerText()).includes('Контакты'));
-    await click('#navRefresh');assert((await page.locator('#toast').innerText()).includes('обновлена'));
+    await click('#navRefresh');await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('обновлена'));
     await click('#navFred');await visible('#brainPage');await click('#navBack');
     await click('#navTraffic');await visible('#brainPage');await click('#navBack');
     await click('#navPower');await visible('#brainPage');await click('#navBack');
@@ -162,6 +167,13 @@ async function exerciseEveryControl(browser,errors){
     await click('#saveSettings');
     const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('tracktor-preferences')||'null'));
     assert(saved&&saved.layout&&saved.theme,'Настройки не сохраняются');
+    await page.waitForFunction(()=>document.querySelector('#saveFeedback').textContent.includes('✓'));
+    assert.deepEqual(await (await page.request.get(site+'api/preferences')).json(),saved,'Настройки не записаны в SQLite');
+    // SQLite remains usable if browser storage is disabled.
+    await page.evaluate(()=>{window.originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new Error('storage disabled');};});
+    await click('#saveSettings');
+    await page.waitForFunction(()=>document.querySelector('#saveFeedback').textContent==='✓ Настройки сохранены в базе');
+    await page.evaluate(()=>{Storage.prototype.setItem=window.originalSetItem;delete window.originalSetItem;});
     const pngPromise=page.waitForEvent('download',{timeout:15000});
     await click('#exportPng');
     const png=await pngPromise;
@@ -203,7 +215,7 @@ async function exerciseEveryControl(browser,errors){
     await click('#clientOpenBrain');await visible('#brainPage');
     await click('#navBack');
 
-    // Кнопки навыков: запуск, сведения и добавление (с объяснением демо-ограничения).
+    // Навык сохраняется в SQLite и остаётся после перезагрузки страницы.
     const skillButtons=page.locator('#skillsGrid .skill-controls button');
     assert.equal(await skillButtons.count(),8,'Ожидалось по две кнопки у четырёх навыков');
     for(let i=0;i<await skillButtons.count();i++){
@@ -211,10 +223,15 @@ async function exerciseEveryControl(browser,errors){
       await skillButtons.nth(i).click();
       await visible('#toast');
     }
+    const answers=['/локальный-тест','Сохраняется без аккаунта'];
+    const handleDialog=dialog=>dialog.accept(answers.shift());
+    page.on('dialog',handleDialog);
+    const skillSaved=page.waitForResponse(r=>r.url().endsWith('/api/skills')&&r.request().method()==='POST');
     await click('#addSkill');
-    await visible('#authModal');
-    assert((await page.locator('#authFeedback').innerText()).includes('supabase-schema.sql'),'Кнопка добавления навыка не направляет к настройке базы');
-    await click('#closeAuthModal');await hidden('#authModal');
+    assert.equal((await skillSaved).status(),201);
+    page.off('dialog',handleDialog);
+    await page.reload();
+    await page.waitForFunction(()=>Array.from(document.querySelectorAll('.skill-name')).some(e=>e.textContent==='/локальный-тест'));
 
     // Возврат и клавиша логотипа.
     await click('#navBrain');await click('#brandButton');await visible('#commandPage');
@@ -226,7 +243,22 @@ async function screenshot(page,name){
   await page.screenshot({path:path.join(output,name+'.png'),animations:'disabled'});
 }
 (async()=>{
-  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+  const temporary=fs.mkdtempSync(path.join(os.tmpdir(),'tracktor-visual-'));
+  const server=spawn(process.env.PYTHON||'python3',[path.join(root,'server.py'),'--port','0','--database',path.join(temporary,'tracktor.sqlite3')],{stdio:['ignore','pipe','pipe']});
+  let browser;
+  try {
+    site=await new Promise((resolve,reject)=>{
+      let output='';
+      const timer=setTimeout(()=>reject(new Error('Локальный сервер не запустился')),10000);
+      server.stdout.on('data',chunk=>{
+        output+=chunk.toString();
+        const match=output.match(/TRACKTOR: (http:\/\/[^\s]+)/);
+        if(match){clearTimeout(timer);resolve(match[1]);}
+      });
+      server.once('error',e=>{clearTimeout(timer);reject(e);});
+      server.once('exit',code=>{clearTimeout(timer);reject(new Error('Сервер завершился: '+code+' '+output));});
+    });
+    browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox']});
   const errors=[];
   try{
     for(const vp of [{width:390,height:844,id:'phone'},{width:740,height:720,id:'video'},{width:1024,height:768,id:'tablet'},{width:1440,height:900,id:'desktop'}]){
@@ -283,4 +315,9 @@ async function screenshot(page,name){
     console.log('✓ 4 размера экрана; все панели доступны при прокрутке; все интерактивные кнопки проверены');
     console.log('Скриншоты: '+output);
   }finally{await browser.close();}
+  } finally {
+    if(server.exitCode===null){server.kill();await new Promise(resolve=>server.once('exit',resolve));}
+    fs.rmSync(temporary,{recursive:true,force:true});
+  }
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
