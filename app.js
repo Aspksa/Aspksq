@@ -525,9 +525,13 @@
         var dx=(band-4)*.018 +(random(i*500+j)-.5)*.012;
         var pt=polar(cx,cy,rr,a+dx),r=.95+random(j+i*9)*1.55;
         drawCircle(cluster,pt[0],pt[1],r,col,"none",0,.38+random(j+17)*.56);
-        if((state.names&&state.zoom>1.5&&j<4)||(state.zoom>2.2&&j%17===0)){
-          var terms=["мозг","данные","память","операции","агенты","связи","заметки"];
-          drawText(cluster,pt[0]+5,pt[1]-5,(state.names?"файл "+(j+1):terms[(i+j)%terms.length]),col,6,"start",{opacity:".72"});
+        if(j%7===0){
+          var file=demoFile(p,i,j);
+          attachNode(drawCircle(cluster,pt[0],pt[1],6.3,"transparent","none",0,1),file,"file");
+        }
+        if((state.names&&state.zoom>1.5&&j<5)||(state.zoom>2.2&&j%17===0)){
+          var labelFile=demoFile(p,i,j);
+          drawText(cluster,pt[0]+5,pt[1]-5,labelFile.name,col,6,"start",{opacity:".73"});
         }
       }
       var l=polar(cx,cy,327,a),isLeft=Math.cos(a)<-.2;
