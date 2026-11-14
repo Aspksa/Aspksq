@@ -47,4 +47,14 @@ const portugueseLabels = [
 for(const label of portugueseLabels){
   assert.ok(!html.includes(label), 'Не переведена метка '+label);
 }
+// Регрессионные проверки сценариев из видео: 17–23-я секунды.
+assert.match(js, /function circleLayout\(/, 'Режим «Круг» реализован');
+assert.match(js, /function hexLayout\(/, 'Режим «Соты» реализован');
+assert.match(js, /attachNode\(tileShape,p,"group"\)/, 'Кликабельна вся шестиугольная область');
+assert.match(js, /if\(band\(before\)!==band\(after\)\)renderBrain\(\)/, 'Обновление подписей после приближения');
+assert.match(js, /\(\(state\.names&&state\.zoom>1\.6\)\|\|state\.zoom>2\.2\)/, 'Подписи мини-файлов при сильном увеличении');
+assert.match(js, /var activePointers=new Map\(\),pinch=null/, 'Двухпальцевое масштабирование');
+assert.match(js, /drawHoverLinks\(e,p\)/, 'Подсветка связей при наведении');
+assert.match(css, /\.command-left,\.command-right\{overflow-y:auto/, 'Независимая прокрутка боковых колонок');
+
 console.log('✓ Проверены синтаксис JavaScript, элементы интерфейса, анимации, русские подписи и обработчики');
