@@ -636,6 +636,9 @@
     return pts.join(" ");
   }
   function hexLayout(parent){
+    // Keep the full honeycomb inside the viewBox at the default zoom.
+    // Users can still zoom into an individual cell with the map controls.
+    parent=svg("g",{transform:"translate(550 455) scale(.60) translate(-550 -455)"},parent);
     drawStars(parent,145);
     var tiles=[
       ["TOJIRO MOOCA",240,-75,5],
