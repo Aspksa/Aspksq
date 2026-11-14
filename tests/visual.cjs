@@ -221,7 +221,12 @@ async function exerciseEveryControl(browser,errors){
     for(let i=0;i<await skillButtons.count();i++){
       await skillButtons.nth(i).scrollIntoViewIfNeeded();
       await skillButtons.nth(i).click();
-      await visible('#toast');
+      if(i%2===0){
+        await visible('#skillModal');
+        await page.waitForFunction(()=>document.querySelector('#skillTitle').textContent.startsWith('/'));
+        assert(await page.locator('#skillExecute').isDisabled(),'Без ключа навык не должен отправлять платный запрос');
+        await click('#closeSkillModal');await hidden('#skillModal');
+      }else await visible('#toast');
     }
     const answers=['/локальный-тест','Сохраняется без аккаунта'];
     const handleDialog=dialog=>dialog.accept(answers.shift());

@@ -270,18 +270,18 @@
     var holder=$("skillsGrid");if(!holder)return;
     holder.textContent="";
     var skills=[
-      {name:"/оптимизация-аккаунта",meta:"SONNET · СРЕДНИЙ",custom:false},
-      {name:"/отчёт-в-3-шага",meta:"SONNET · СРЕДНИЙ",custom:false},
-      {name:"/панель-кампаний",meta:"SONNET · СРЕДНИЙ",custom:false},
-      {name:"/цикл-креативов",meta:"SONNET · СРЕДНИЙ",custom:false}
-    ].concat(databaseSkills.map(function(s){return {name:s.name,meta:(s.model||"SONNET")+" · "+(s.mode||"СРЕДНИЙ"),description:s.description||"",custom:true};}));
+      {id:"builtin:account-optimization",name:"/оптимизация-аккаунта",meta:"CLOUD.RU · ПО ЗАДАЧЕ",custom:false},
+      {id:"builtin:three-step-report",name:"/отчёт-в-3-шага",meta:"CLOUD.RU · ПО ЗАДАЧЕ",custom:false},
+      {id:"builtin:campaign-dashboard",name:"/панель-кампаний",meta:"CLOUD.RU · ПО ЗАДАЧЕ",custom:false},
+      {id:"builtin:creative-cycle",name:"/цикл-креативов",meta:"CLOUD.RU · ПО ЗАДАЧЕ",custom:false}
+    ].concat(databaseSkills.map(function(s){return {id:"custom:"+s.id,name:s.name,meta:"CLOUD.RU · ПОЛЬЗОВАТЕЛЬСКИЙ",description:s.description||"",custom:true};}));
     skills.forEach(function(skill){
       var card=dom("div","skill-card",undefined,holder);
       dom("div","skill-name",skill.name,card);dom("div","skill-meta",skill.meta,card);
       var actions=dom("div","skill-controls",undefined,card);
       var run=dom("button","", "▶",actions),more=dom("button","skill-more","◌",actions);
       run.type="button";run.title="Запустить навык";more.type="button";more.title="Информация о навыке";
-      run.addEventListener("click",function(){notify(skill.custom?"Навык сохранён в базе. Для выполнения нужен исполнитель":"Демо: для запуска "+skill.name+" нужен сервер оригинала");});
+      run.addEventListener("click",function(){if(window.SkillRunner)window.SkillRunner.open(skill.id);else notify("Окно навыка ещё загружается. Повторите нажатие.");});
       more.addEventListener("click",function(){notify(skill.description||("Навык "+skill.name+" · "+skill.meta));});
     });
   }
@@ -969,7 +969,7 @@
       if(!window.TracktorDB.isReady()){openDatabaseModal();notify("Запустите Aspksa.bat, чтобы сохранять навыки");return;}
       var name=window.prompt("Название нового навыка:");
       if(!name||!name.trim())return;
-      var description=window.prompt("Краткое описание (необязательно):")||"";
+      var description=window.prompt("Что должен делать навык? Инструкция для модели (необязательно):")||"";
       window.TracktorDB.createSkill(name.trim(),description.trim()).then(function(skill){
         databaseSkills.push(skill);renderSkills();notify("Навык сохранён в локальной базе");
       }).catch(function(error){notify(error.message||"Не удалось сохранить навык");});

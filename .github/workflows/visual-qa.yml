@@ -12,6 +12,8 @@ on:
       - "database.js"
       - "server.py"
       - "cloudru.py"
+      - "skillrunner.py"
+      - "skills.js"
       - "cloud.js"
       - "sqlite-schema.sql"
       - "seed-data.json"

@@ -44,3 +44,13 @@ CREATE TABLE IF NOT EXISTS cloudru_settings (
   id INTEGER PRIMARY KEY CHECK(id=1),
   api_key TEXT NOT NULL DEFAULT '', model TEXT NOT NULL DEFAULT '', verified_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS skill_runs (
+  id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, skill_name TEXT NOT NULL,
+  description TEXT NOT NULL, model TEXT NOT NULL, task TEXT NOT NULL,
+  max_tokens INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('running','succeeded','partial','failed','interrupted')),
+  result TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', usage TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL, finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS skill_runs_skill_idx ON skill_runs(skill_id);

@@ -206,7 +206,7 @@ try {
     $OutputEncoding = $utf8
     $env:PYTHONUTF8 = '1'
     $env:PYTHONIOENCODING = 'utf-8'
-    foreach ($required in @('server.py','cloudru.py','cloud.js', 'sqlite-schema.sql', 'seed-data.json', 'index.html', 'database.js', 'app.js', 'styles.css')) {
+    foreach ($required in @('server.py','cloudru.py','cloud.js','skillrunner.py','skills.js', 'sqlite-schema.sql', 'seed-data.json', 'index.html', 'database.js', 'app.js', 'styles.css')) {
         if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot $required) -PathType Leaf)) {
             throw ('Не найден ' + $required + '. Сначала распакуйте архив целиком, затем запустите Aspksa.bat.')
         }

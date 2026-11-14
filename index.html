@@ -227,6 +227,36 @@
         <p class="dialog-note">Ключ хранится в локальной базе без шифрования и входит в её резервные копии. Сохранённый ключ не возвращается браузеру.</p>
       </section>
     </div>
+    <div class="client-modal hidden" id="skillModal" role="dialog" aria-modal="true" aria-labelledby="skillTitle">
+      <section class="client-dialog skill-dialog" id="skillDialog">
+        <button class="client-close" id="closeSkillModal" type="button" aria-label="Закрыть навык">×</button>
+        <p class="dialog-kicker">НАВЫК · CLOUD.RU</p>
+        <h2 id="skillTitle">Запуск навыка</h2>
+        <p class="dialog-note" id="skillDescription"></p>
+        <p class="dialog-note skill-model" id="skillModel"></p>
+        <div class="cloud-fields">
+          <label for="skillTask">Задача и исходные данные</label>
+          <textarea id="skillTask" maxlength="10000" rows="6" placeholder="Опишите задачу и вставьте исходные данные."></textarea>
+          <label for="skillTokenLimit">Лимит ответа</label>
+          <select id="skillTokenLimit">
+            <option value="1024">1024 токена</option><option value="2048" selected>2048 токенов</option>
+            <option value="4096">4096 токенов</option><option value="8192">8192 токена</option>
+          </select>
+        </div>
+        <p class="dialog-note">Описание навыка и введённая задача будут отправлены выбранной модели Cloud.ru. Запуск расходует токены. Результат сохраняется в локальной базе.</p>
+        <div class="auth-actions cloud-actions">
+          <button id="skillExecute" type="button">Выполнить навык</button>
+          <button id="skillConfigureCloud" type="button">Настроить Cloud.ru</button>
+        </div>
+        <p class="skill-feedback" id="skillFeedback" role="status" aria-live="polite"></p>
+        <h3 class="skill-result-heading">Результат последнего запуска</h3>
+        <pre class="skill-result" id="skillResult" aria-label="Результат выполнения навыка"></pre>
+        <div class="auth-actions cloud-actions">
+          <button id="skillCopy" type="button" disabled>Скопировать</button>
+          <button id="skillDownload" type="button" disabled>Скачать TXT</button>
+        </div>
+      </section>
+    </div>
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
     <div class="shortcuts hidden" id="shortcuts">
       <div class="shortcuts-card">
@@ -243,5 +273,6 @@
   <script src="database.js" defer></script>
   <script src="app.js" defer></script>
   <script src="cloud.js" defer></script>
+  <script src="skills.js" defer></script>
 </body>
 </html>
