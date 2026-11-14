@@ -7,6 +7,8 @@ on:
       - 'Aspksa.bat'
       - 'Start-Tracktor.ps1'
       - 'server.py'
+      - 'cloudru.py'
+      - 'cloud.js'
       - 'tests/test_local_db.py'
       - 'tests/windows-launcher.ps1'
       - 'tests/windows-portable.ps1'

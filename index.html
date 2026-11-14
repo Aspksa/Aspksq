@@ -20,6 +20,7 @@
       </button>
       <div class="topbar-right">
         <span class="system-status"><i></i><span id="systemLabel">ЛОКАЛЬНАЯ БАЗА</span></span>
+      <button class="account-button cloud-button" id="cloudButton" type="button" aria-haspopup="dialog" aria-label="Подключить Cloud.ru"><span class="cloud-desktop-label">CLOUD.RU</span><span class="cloud-mobile-label">AI</span></button>
       <button class="account-button" id="accountButton" type="button" aria-haspopup="dialog">БАЗА</button>
         <nav class="command-nav" aria-label="Навигация командного центра">
           <button class="top-action" id="navFred">FRED</button>
@@ -189,9 +190,41 @@
         <p class="dialog-note">Один пользователь. Данные сохраняются на вашем компьютере.</p>
         <div class="auth-actions">
           <button id="backupDatabase" type="button">Скачать резервную копию</button>
+          <button id="openCloudSettings" type="button">Подключить Cloud.ru</button>
           <button id="retryDatabase" type="button">Переподключить</button>
         </div>
         <p class="dialog-note auth-feedback" id="authFeedback" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+    <div class="client-modal hidden" id="cloudModal" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+      <section class="client-dialog cloud-dialog" id="cloudDialog">
+        <button class="client-close" id="closeCloudModal" type="button" aria-label="Закрыть Cloud.ru">×</button>
+        <p class="dialog-kicker">CLOUD.RU · FOUNDATION MODELS</p>
+        <h2 id="cloudTitle">Подключить модель</h2>
+        <p class="dialog-note">Нужен Key Secret с доступом к Foundation Models. <a href="https://cloud.ru/docs/foundation-models/ug/topics/api-ref__authentication" target="_blank" rel="noopener noreferrer">Где найти ключ</a></p>
+        <div class="cloud-fields">
+          <label for="cloudKey">API-ключ · Key Secret</label>
+          <input id="cloudKey" type="password" maxlength="4096" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Вставьте Key Secret из Cloud.ru">
+          <p class="dialog-note" id="cloudCredentialStatus">Ключ ещё не сохранён.</p>
+        </div>
+        <div class="auth-actions cloud-actions">
+          <button id="cloudSaveKey" type="button">Сохранить ключ</button>
+          <button id="cloudRefresh" type="button">Обновить список моделей</button>
+        </div>
+        <div class="cloud-fields">
+          <label for="cloudModel">Текстовая модель</label>
+          <select id="cloudModel"><option value="">Выберите текстовую модель</option></select>
+        </div>
+        <div class="auth-actions cloud-actions">
+          <button id="cloudSaveModel" type="button">Сохранить модель</button>
+          <button id="cloudVerify" type="button">Подключить и проверить</button>
+          <button id="cloudRemove" type="button">Удалить ключ</button>
+        </div>
+        <p class="dialog-note" id="cloudConnectionStatus">Модель ещё не проверена.</p>
+        <p class="dialog-note">Проверка отправляет короткий запрос выбранной модели и расходует токены Cloud.ru.</p>
+        <p class="cloud-feedback" id="cloudFeedback" role="status" aria-live="polite"></p>
+        <pre class="cloud-reply" id="cloudReply" aria-label="Ответ модели"></pre>
+        <p class="dialog-note">Ключ хранится в локальной базе без шифрования и входит в её резервные копии. Сохранённый ключ не возвращается браузеру.</p>
       </section>
     </div>
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
@@ -209,5 +242,6 @@
   </div>
   <script src="database.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="cloud.js" defer></script>
 </body>
 </html>

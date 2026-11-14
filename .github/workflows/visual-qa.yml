@@ -11,9 +11,13 @@ on:
       - "app.js"
       - "database.js"
       - "server.py"
+      - "cloudru.py"
+      - "cloud.js"
       - "sqlite-schema.sql"
       - "seed-data.json"
       - "tests/visual.cjs"
+      - "tests/cloud-ui.cjs"
+      - "tests/cloud_ui_server.py"
       - ".github/workflows/visual-qa.yml"
 
 permissions:
@@ -36,7 +40,9 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Проверить интерфейс на 390 / 740 / 1024 / 1440 px
-        run: node tests/visual.cjs
+        run: |
+          node tests/visual.cjs
+          node tests/cloud-ui.cjs
       - name: Сохранить снимки экрана
         if: always()
         uses: actions/upload-artifact@v4

@@ -24,6 +24,7 @@ jobs:
         run: |
           node --check app.js
           node --check database.js
+          node --check cloud.js
           node tests/smoke.mjs
       - name: Test local SQLite server and persistence
         run: python -m unittest discover -s tests -p 'test_*.py' -v

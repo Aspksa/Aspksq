@@ -17,11 +17,14 @@ from urllib.parse import urlsplit
 import uuid
 import webbrowser
 
+from cloudru import CloudError, CloudRu
+
 ROOT = Path(__file__).resolve().parent
 STATIC_FILES = {"index.html": "text/html; charset=utf-8",
                 "styles.css": "text/css; charset=utf-8",
                 "app.js": "text/javascript; charset=utf-8",
-                "database.js": "text/javascript; charset=utf-8"}
+                "database.js": "text/javascript; charset=utf-8",
+                "cloud.js": "text/javascript; charset=utf-8"}
 TABLES = {"clients": "sort_order, name", "projects": "sort_order, name",
           "skills": "sort_order, name", "routines": "sort_order, scheduled_at",
           "tasks": "due_at", "notifications": "created_at DESC"}
@@ -41,23 +44,24 @@ def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 1:
+        if version > 2:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
-        if version == 1:
+        if version == 2:
             return
         connection.execute("BEGIN IMMEDIATE")
         schema = (ROOT / "sqlite-schema.sql").read_text(encoding="utf-8")
         for statement in schema.split(";"):
             if statement.strip():
                 connection.execute(statement)
-        seed = json.loads((ROOT / "seed-data.json").read_text(encoding="utf-8"))
-        for table in ("clients", "projects", "routines"):
-            for row in seed[table]:
-                row = {"id": str(uuid.uuid4()), **row}
-                columns = ",".join(row)
-                placeholders = ",".join("?" for _ in row)
-                connection.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))
-        connection.execute("PRAGMA user_version=1")
+        if version == 0:
+            seed = json.loads((ROOT / "seed-data.json").read_text(encoding="utf-8"))
+            for table in ("clients", "projects", "routines"):
+                for row in seed[table]:
+                    row = {"id": str(uuid.uuid4()), **row}
+                    columns = ",".join(row)
+                    placeholders = ",".join("?" for _ in row)
+                    connection.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))
+        connection.execute("PRAGMA user_version=2")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -109,7 +113,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         try:
-            if path == "/api/status":
+            if path in ("/api/cloud/settings", "/api/cloud/models"):
+                cloud = CloudRu(self.database, connect)
+                self.send_json(200, cloud.settings() if path.endswith("settings") else cloud.models())
+            elif path == "/api/status":
                 with closing(connect(self.database)) as connection:
                     connection.execute("SELECT 1 FROM user_preferences LIMIT 1")
                 self.send_json(200, {"storage": "sqlite", "single_user": True,
@@ -138,6 +145,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(404, {"error": "Не найдено"})
                     return
                 self.send_body(200, (ROOT / name).read_bytes(), STATIC_FILES[name])
+        except CloudError as error:
+            self.send_json(error.status, {"error": str(error)})
         except (OSError, sqlite3.Error):
             self.log_error("Failed to read local database or file")
             self.send_json(500, {"error": "Файл или база недоступны. Проверьте подключение носителя и папку приложения. Затем повторите запуск BAT."})
@@ -147,11 +156,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(403, {"error": "Разрешён только локальный доступ"})
             return
         path = urlsplit(self.path).path
-        if path not in ("/api/preferences", "/api/skills"):
+        if path not in ("/api/preferences", "/api/skills", "/api/cloud/settings", "/api/cloud/test"):
             self.send_json(404, {"error": "Не найдено"})
             return
         try:
             data = self.read_json()
+            if path in ("/api/cloud/settings", "/api/cloud/test"):
+                cloud = CloudRu(self.database, connect)
+                self.send_json(200, cloud.save(data) if path.endswith("settings") else cloud.verify())
+                return
             with closing(connect(self.database)) as connection, connection:
                 if path == "/api/preferences":
                     preferences = json.dumps(data, ensure_ascii=False, allow_nan=False)
@@ -169,6 +182,8 @@ class Handler(BaseHTTPRequestHandler):
                     connection.execute("INSERT INTO skills(id,name,description) VALUES(?,?,?)", (skill_id, name.strip(), description.strip()))
                     result = dict(connection.execute("SELECT * FROM skills WHERE id=?", (skill_id,)).fetchone())
             self.send_json(201 if path == "/api/skills" else 200, result)
+        except CloudError as error:
+            self.send_json(error.status, {"error": str(error)})
         except sqlite3.IntegrityError:
             self.send_json(409, {"error": "Навык с таким названием уже существует"})
         except (ValueError, UnicodeError):
