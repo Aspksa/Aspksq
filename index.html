@@ -19,7 +19,7 @@
         </span>
       </button>
       <div class="topbar-right">
-        <span class="system-status"><i></i><span id="systemLabel">СИНХРОНИЗАЦИЯ · 18:22</span></span>
+        <span class="system-status"><i></i><span id="systemLabel">ДЕМО-РЕЖИМ</span></span>
         <nav class="command-nav" aria-label="Навигация командного центра">
           <button class="top-action" id="navFred">FRED</button>
           <button class="top-action" id="navTraffic">ТРАФИК</button>
@@ -30,8 +30,8 @@
           <button class="icon-button" id="navPower" data-ui-icon="power" title="Второй мозг" aria-label="Второй мозг">⏻</button>
         </nav>
         <nav class="brain-nav" aria-label="Навигация Второго мозга">
-          <button class="top-action" id="navBack"><span>←</span> В КОМАНДНЫЙ ЦЕНТР</button>
-          <button class="top-action" id="navPresent">▷ ПРЕЗЕНТАЦИЯ</button>
+          <button class="top-action" id="navBack" title="Вернуться в командный центр"><span>←</span> <span class="desktop-only">В КОМАНДНЫЙ ЦЕНТР</span><span class="mobile-only">НАЗАД</span></button>
+          <button class="top-action" id="navPresent" aria-label="Включить режим презентации" title="Режим презентации">▷ <span class="present-label">ПРЕЗЕНТАЦИЯ</span></button>
           <button class="icon-button" id="navMenu" data-ui-icon="menu" aria-label="Открыть меню" aria-expanded="false">☰</button>
         </nav>
       </div>
@@ -83,7 +83,7 @@
         </section>
         <section class="panel alerts-panel">
           <header class="panel-heading"><span><b class="mini-star">✦</b> УВЕДОМЛЕНИЯ</span><small>ОЧЕРЕДЬ СИСТЕМЫ</small></header>
-          <div class="alert-number"><strong>9</strong><span>УВЕДОМЛЕНИЙ<br>В ОЧЕРЕДИ</span></div>
+          <div class="alert-number"><strong>8</strong><span>УВЕДОМЛЕНИЙ<br>В ОЧЕРЕДИ</span></div>
           <div class="alert-items" id="alertItems"></div>
         </section>
         <section class="panel skills-panel">
@@ -130,7 +130,7 @@
             <button data-layout="hex">Соты</button>
             <button data-layout="force">Силовая</button>
           </div>
-          <div class="subcontrol" role="group" aria-label="Дополнительные слои карты"><button class="mini-chip" id="plaqueToggle" aria-pressed="false" title="Показать плашки с названиями">Плашки</button><button class="mini-chip" id="hudToggle" aria-pressed="false" title="Показать информационный слой">Инфослой</button></div>
+          <div class="subcontrol" role="group" aria-label="Дополнительные слои карты"><button type="button" class="mini-chip" id="plaqueToggle" aria-pressed="false" title="Показать плашки с названиями">Плашки</button><button type="button" class="mini-chip" id="hudToggle" aria-pressed="false" title="Показать информационный слой">Инфослой</button></div>
         </section>
         <section class="control-section">
           <h2>ПРОСМОТР</h2>
@@ -156,7 +156,7 @@
           </div>
           <div class="button-row save-row">
             <button class="primary" id="saveSettings">СОХРАНИТЬ<br>НАСТРОЙКИ</button>
-            <button id="exportPng">Скачать PNG</button>
+            <button id="exportPng" title="Сохранить текущую карту в файл PNG">Скачать PNG</button>
           </div>
           <p class="inline-feedback" id="saveFeedback" aria-live="polite"></p>
         </section>
