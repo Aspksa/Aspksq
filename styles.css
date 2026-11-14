@@ -712,3 +712,53 @@ a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
  .command-right .routines-panel .routine-footer{flex-shrink:0}
  .panel-heading small{font-size:8px}
 }
+
+
+/* Command center: all dashboard cards stay in the first viewport where possible.
+   Long lists scroll inside their own panels; columns remain independently scrollable. */
+.command-left,.command-right{
+  min-height:0;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:#254656 transparent;
+  overscroll-behavior:contain;padding-right:2px
+}
+.command-left>.panel,.command-right>.panel{flex-shrink:0}
+.command-left .wallet-list,.command-right .team-grid,
+.command-right .alert-items,.command-right .skills-grid,
+.command-right .routine-list,.command-left .funnel-list{min-height:0;overflow-y:auto}
+.small-tag{
+  appearance:none;background:transparent;cursor:pointer;
+  line-height:1.3;vertical-align:middle;font-family:var(--mono)
+}
+.small-tag:hover{background:#153c3b;color:#b9fff0}
+.small-tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(min-width:1100px){
+  .command-left .wallet-panel{flex:0 0 300px;height:300px;min-height:0}
+  .command-left .now-panel{flex:0 0 180px;height:180px;min-height:0}
+  .command-left .funnel-panel{flex:0 0 250px;height:250px;min-height:0}
+  .command-right .team-panel{flex:0 0 210px;height:210px;min-height:0}
+  .command-right .alerts-panel{flex:0 0 155px;height:155px;min-height:0}
+  .command-right .skills-panel{flex:0 0 210px;height:210px;min-height:0}
+  .command-right .routines-panel{flex:0 0 215px;height:215px;min-height:0}
+  .command-right .team-grid{grid-auto-rows:16px;overflow-y:auto}
+  .command-right .skills-grid{overflow-y:auto}
+  .command-right .routine-list{overflow-y:auto}
+  .command-right .alert-items{overflow-y:auto}
+  .command-left .funnel-list{overflow-y:auto}
+}
+@media(min-width:701px) and (max-width:1099px){
+  .command-left .wallet-panel{flex:0 0 250px;height:250px;min-height:0}
+  .command-left .now-panel{flex:0 0 170px;height:170px;min-height:0}
+  .command-left .funnel-panel{flex:0 0 220px;height:220px;min-height:0}
+  .command-right .team-panel{flex:0 0 185px;height:185px;min-height:0}
+  .command-right .alerts-panel{flex:0 0 145px;height:145px;min-height:0}
+  .command-right .skills-panel{flex:0 0 190px;height:190px;min-height:0}
+  .command-right .routines-panel{flex:0 0 190px;height:190px;min-height:0}
+  .command-right .team-grid{grid-auto-rows:14px;overflow-y:auto}
+  .command-right .skills-grid,.command-right .routine-list,.command-right .alert-items{overflow-y:auto}
+  .command-left .funnel-list{overflow-y:auto}
+}
+@media(max-width:700px){
+  .command-left,.command-right{padding-right:0}
+  .command-left>.panel,.command-right>.panel{flex-shrink:0}
+  .small-tag{font-size:7px;padding:2px 3px}
+}
