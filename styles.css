@@ -809,3 +809,19 @@ a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
   .command-right .skills-panel .skills-grid{grid-auto-rows:minmax(82px,auto)}
   .command-right .skills-panel .skill-card{padding:7px 5px;gap:4px}
 }
+
+
+/* Account access and Supabase sign-in */
+.account-button{height:25px;padding:0 9px;border:1px solid #31505d;border-radius:3px;background:#0b1b28;color:var(--accent);font:8px var(--mono);letter-spacing:.11em;white-space:nowrap;transition:.2s}
+.account-button:hover{border-color:var(--accent);background:#112b36}
+.auth-dialog{max-width:440px}
+.auth-fields{display:grid;gap:7px;margin-top:4px}
+.auth-fields label{margin-top:5px;color:#7895a3;font:8px var(--mono);letter-spacing:.13em}
+.auth-fields input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #294653;border-radius:4px;outline:none;background:#071620;color:#e0eff1;font:12px var(--mono)}
+.auth-fields input:focus{border-color:var(--accent);box-shadow:0 0 0 2px #36dfb722}
+.auth-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:17px}
+.auth-actions button{min-height:35px;padding:8px 11px;border:1px solid #345362;border-radius:4px;color:#b6ced5;background:#102535;font:9px var(--mono);letter-spacing:.04em}
+.auth-actions button:first-child{background:var(--accent);border-color:var(--accent);color:#052623;font-weight:700}
+.auth-actions button:hover{border-color:var(--accent)}
+.auth-feedback{min-height:28px;overflow-wrap:anywhere}
+@media(max-width:700px){.topbar-right{gap:5px}.account-button{padding:0 6px;font-size:7px;letter-spacing:.04em}.system-status{gap:4px;font-size:7px;letter-spacing:.03em}}
