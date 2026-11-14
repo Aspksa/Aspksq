@@ -57,4 +57,15 @@ assert.match(js, /var activePointers=new Map\(\),pinch=null/, 'Двухпаль�
 assert.match(js, /drawHoverLinks\(e,p\)/, 'Подсветка связей при наведении');
 assert.match(css, /\.command-left,\.command-right\{overflow-y:auto/, 'Независимая прокрутка боковых колонок');
 
+// Выявленные при визуальном аудите регрессии.
+assert.ok(css.includes(".command-right{grid-row:3}"), 'Правая колонка доступна на мобильных экранах');
+assert.ok(css.includes("scroll-snap-type:x proximity"), 'Мобильные блоки прокручиваются по горизонтали');
+assert.ok(css.includes("minmax(0,1fr)"), 'Центральная колонка может сжиматься без обрезания');
+assert.ok(!css.includes("ESC PARA SAIR"), 'Режим презентации полностью переведён');
+assert.ok(css.includes("ESC — ВЫХОД"), 'Русская подсказка выхода из презентации');
+assert.match(js, /for\(var i=0;i<143;i\+\+\)/, 'Число значков соответствует 143 сотрудникам');
+assert.match(js, /el\.hasAttribute\("cx"\)&&el\.hasAttribute\("cy"\)/, 'Начало связей сот определяется по реальной геометрии');
+assert.match(html, /<span class="mobile-only">НАЗАД<\/span>/, 'Есть короткая русская мобильная навигация');
+assert.match(js, /row\.setAttribute\("role","button"\)/, 'Строки клиентов доступны с клавиатуры');
+
 console.log('✓ Проверены синтаксис JavaScript, элементы интерфейса, анимации, русские подписи и обработчики');
