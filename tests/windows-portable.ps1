@@ -144,7 +144,7 @@ try {
         # All diskpart commands stop on errors; only this NEW file is ever selected.
         Assert-Portable (-not [IO.File]::Exists($disk)) 'Test virtual disk already exists.'
         $virtualDisks.Add($disk)
-        Invoke-TestDiskPart -Commands @(('create vdisk file="'+$disk+'" maximum=128 type=expandable'), ('select vdisk file="'+$disk+'"'), 'attach vdisk', 'create partition primary', ('format fs='+$filesystem+' quick label=TRACKTOR_TEST'), ('assign letter='+$letter))
+        Invoke-TestDiskPart -Commands @(('create vdisk file="'+$disk+'" maximum=128 type=expandable'), ('select vdisk file="'+$disk+'"'), 'attach vdisk', 'create partition primary', ('format fs='+$filesystem+' quick label=TRACKTOR'), ('assign letter='+$letter))
         Assert-Portable ([IO.Directory]::Exists($letter+':\')) 'Test virtual disk did not mount.'
         $drive = New-Object IO.DriveInfo($letter+':\')
         Assert-Portable ($drive.DriveFormat -eq $filesystem) 'Wrong test filesystem.'
