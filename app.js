@@ -911,24 +911,58 @@
       e.preventDefault();
       changeZoom(e.deltaY<0?1.1:1/1.1,e.clientX,e.clientY);
     },{passive:false});
+    // Drag uses the actual SVG viewBox scale; two simultaneous touch pointers
+    // provide pinch-to-zoom without changing the fixed settings panel.
+    var activePointers=new Map(),pinch=null;
     $("brainSvg").addEventListener("pointerdown",function(e){
       if(e.button!==0&&e.pointerType==="mouse")return;
-      drag={x:e.clientX,y:e.clientY,startX:state.panX,startY:state.panY};
-      dragged=false;
+      activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(activePointers.size>=2){
+        var ps=Array.from(activePointers.values());
+        pinch={distance:Math.hypot(ps[1].x-ps[0].x,ps[1].y-ps[0].y)};
+        drag=null;dragged=true;hideDetails();clearHoverLinks();
+      }else{
+        pinch=null;
+        drag={x:e.clientX,y:e.clientY,startX:state.panX,startY:state.panY};
+        dragged=false;
+      }
       e.currentTarget.setPointerCapture(e.pointerId);
       e.currentTarget.classList.add("dragging");
     });
     $("brainSvg").addEventListener("pointermove",function(e){
+      if(!activePointers.has(e.pointerId))return;
+      activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(activePointers.size>=2){
+        var ps=Array.from(activePointers.values());
+        var distance=Math.hypot(ps[1].x-ps[0].x,ps[1].y-ps[0].y);
+        var centerX=(ps[0].x+ps[1].x)/2,centerY=(ps[0].y+ps[1].y)/2;
+        if(pinch&&pinch.distance>1&&distance>1)changeZoom(distance/pinch.distance,centerX,centerY);
+        pinch={distance:distance};
+        dragged=true;hideDetails();clearHoverLinks();
+        return;
+      }
       if(!drag)return;
       var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
       if(Math.abs(dx)+Math.abs(dy)>6)dragged=true;
       var rect=this.getBoundingClientRect();
-      state.panX=drag.startX+dx*1100/rect.width;
-      state.panY=drag.startY+dy*920/rect.height;
+      var unit=Math.min(rect.width/1100,rect.height/920);
+      state.panX=drag.startX+dx/unit;
+      state.panY=drag.startY+dy/unit;
       updateTransform();
-      if(dragged)hideDetails();
+      if(dragged){hideDetails();clearHoverLinks();}
     });
-    function stopDrag(e){drag=null;e.currentTarget.classList.remove("dragging");setTimeout(function(){dragged=false;},75);}
+    function stopDrag(e){
+      activePointers.delete(e.pointerId);
+      if(activePointers.size===1){
+        var remaining=Array.from(activePointers.values())[0];
+        drag={x:remaining.x,y:remaining.y,startX:state.panX,startY:state.panY};
+        pinch=null;dragged=true;
+      }else if(activePointers.size===0){
+        drag=null;pinch=null;
+        e.currentTarget.classList.remove("dragging");
+        setTimeout(function(){if(activePointers.size===0)dragged=false;},100);
+      }
+    }
     $("brainSvg").addEventListener("pointerup",stopDrag);
     $("brainSvg").addEventListener("pointercancel",stopDrag);
     $("brainSvg").addEventListener("click",function(e){if(!dragged&&(e.target===$("brainSvg")||e.target===$("mapViewport"))){state.focus=null;hideDetails();clearHoverLinks();renderBrain();}});
