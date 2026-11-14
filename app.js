@@ -30,7 +30,7 @@
     {name:"SR MAN BARBER SHOP",files:38,color:1},
     {name:"INSTITUTO BELLA FACE - SER",files:42,color:2},
     {name:"GRUPO CENTURIÃO",files:52,color:3},
-    {name:"DAIANE ROSENDO ADVOCACIA",files:54,color:0},
+    {name:"DAIANE ROSENDO ADVOCACIA",files:20,color:0},
     {name:"DRA. FERNANDA",files:32,color:1},
     {name:"ESCRITA COM CIÊNCIA",files:43,color:2},
     {name:"EXPO PEÇAS",files:36,color:0},
