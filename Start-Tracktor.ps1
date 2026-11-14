@@ -3,19 +3,48 @@
 # UTF-8 BOM is intentional: Windows PowerShell 5.1 otherwise misreads Russian.
 $ErrorActionPreference = 'Stop'
 
+function ConvertTo-WindowsArgument {
+    param([string]$Value)
+    # Windows CRT quoting, including backslashes before quotes or closing quote.
+    $escaped = [regex]::Replace($Value, '(\\*)"', '$1$1\"')
+    $escaped = [regex]::Replace($escaped, '(\\+)$', '$1$1')
+    return '"' + $escaped + '"'
+}
+
+function New-PythonProcess {
+    param([string]$Executable, [string[]]$Arguments, [switch]$Capture)
+    $process = New-Object Diagnostics.Process
+    $process.StartInfo.FileName = $Executable
+    $process.StartInfo.Arguments = (@($Arguments | ForEach-Object { ConvertTo-WindowsArgument $_ }) -join ' ')
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = [bool]$Capture
+    $process.StartInfo.RedirectStandardOutput = [bool]$Capture
+    $process.StartInfo.RedirectStandardError = [bool]$Capture
+    return $process
+}
+
 function Test-PythonCandidate {
     param([string]$Executable, [string[]]$Prefix = @())
     if (-not $Executable -or -not (Test-Path -LiteralPath $Executable -PathType Leaf)) { return $null }
-    # Microsoft Store execution aliases may open the Store instead of Python.
     if ($Executable -like '*\Microsoft\WindowsApps\python*.exe') { return $null }
+    $process = $null
     try {
         $probe = 'import sys, sqlite3, json; print(json.dumps(sys.executable, ensure_ascii=True)) if sys.version_info >= (3, 9) else sys.exit(1)'
-        $result = & $Executable @Prefix -c $probe 2>$null
-        if ($LASTEXITCODE -eq 0 -and $result) {
-            $actual = ([string](@($result)[-1])).Trim() | ConvertFrom-Json
+        # ProcessStartInfo uses an exact executable path; no PowerShell wildcard parsing.
+        $process = New-PythonProcess -Executable $Executable -Arguments (@($Prefix) + @('-c', $probe)) -Capture
+        $process.Start() | Out-Null
+        $output = $process.StandardOutput.ReadToEndAsync()
+        $errors = $process.StandardError.ReadToEndAsync()
+        if (-not $process.WaitForExit(10000)) { $process.Kill(); return $null }
+        $result = $output.GetAwaiter().GetResult()
+        $errorText = $errors.GetAwaiter().GetResult()
+        if ($process.ExitCode -eq 0 -and $result) {
+            $actual = $result.Trim() | ConvertFrom-Json
             if (Test-Path -LiteralPath $actual -PathType Leaf) { return $actual }
         }
-    } catch { }
+        Write-LauncherLog ('Python rejected: ' + $Executable + '; exit=' + $process.ExitCode + '; ' + $errorText)
+    } catch { Write-LauncherLog ('Python probe failed: ' + $Executable + '; ' + $_.Exception.Message) }
+    finally { if ($process) { $process.Dispose() } }
     return $null
 }
 
@@ -87,8 +116,12 @@ function Install-LocalPython {
         $arguments = @('/quiet', 'InstallAllUsers=0', 'PrependPath=0', 'Include_launcher=0', 'Include_test=0', 'Include_pip=0', 'Include_doc=0', 'Include_tcltk=0', ('TargetDir="' + $TargetDirectory + '"'))
         $installation = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
         if ($installation.ExitCode -notin @(0, 3010)) { throw ('Установщик Python завершился с кодом ' + $installation.ExitCode + '.') }
+        Write-Host ('Проверяю установленный Python: ' + (Join-Path $TargetDirectory 'python.exe'))
         $python = Test-PythonCandidate -Executable (Join-Path $TargetDirectory 'python.exe')
-        if (-not $python) { throw 'Python установлен, но проверка Python и SQLite не пройдена.' }
+        if (-not $python) {
+            if ($script:LogPath -and [IO.File]::Exists($script:LogPath)) { Write-Host ([IO.File]::ReadAllText($script:LogPath)) }
+            throw ('Python установлен, но проверка Python и SQLite не пройдена. Файл существует: ' + [IO.File]::Exists((Join-Path $TargetDirectory 'python.exe')))
+        }
         return $python
     } finally {
         Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue
@@ -143,11 +176,13 @@ try {
     Write-Host 'Запускаю TRACKTOR. Окно сервера оставьте открытым.'
     $serverArguments = @((Join-Path $PSScriptRoot 'server.py'))
     if ($env:TRACKTOR_NO_BROWSER -ne '1') { $serverArguments += '--open-browser' }
-    # Native stderr stays attached to the console, not a terminating PowerShell error.
-    $ErrorActionPreference = 'Continue'
-    & $python @serverArguments
-    $exitCode = $LASTEXITCODE
-    $ErrorActionPreference = 'Stop'
+    # Inherit the console directly, avoiding shell expansion and stderr conversion.
+    $server = New-PythonProcess -Executable $python -Arguments $serverArguments
+    try {
+        $server.Start() | Out-Null
+        $server.WaitForExit()
+        $exitCode = $server.ExitCode
+    } finally { $server.Dispose() }
     Write-LauncherLog ('Server exit code: ' + $exitCode)
     if ($exitCode -ne 0) { Write-Host 'Не удалось запустить приложение. Подробности выше; журнал: data\launcher.log.' -ForegroundColor Red }
 } catch {

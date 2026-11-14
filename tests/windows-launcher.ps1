@@ -17,6 +17,17 @@ try {
     $python = Find-Python -ManagedPython ''
     Assert-True ([bool]$python) 'An installed Python with sqlite3 was not discovered.'
     Assert-True (-not (Test-PythonCandidate -Executable (Join-Path $temporary 'missing.exe'))) 'Missing Python was accepted.'
+    $values = @('', 'два слова', 'кавычка"внутри', 'C:\путь\', "скобки () [] & ! % О'Брайен")
+    $quoted = New-PythonProcess -Executable $python -Arguments (@('-c','import sys,json; print(json.dumps(sys.argv[1:],ensure_ascii=True))') + $values) -Capture
+    try {
+        $quoted.Start() | Out-Null
+        $encoded = $quoted.StandardOutput.ReadToEndAsync()
+        Assert-True ($quoted.WaitForExit(10000)) 'Argument round-trip timed out.'
+        $decoded = @($encoded.GetAwaiter().GetResult() | ConvertFrom-Json)
+        Assert-True ($decoded.Count -eq $values.Count) 'Argument count changed.'
+        for ($i=0; $i -lt $values.Count; $i++) { Assert-True ($decoded[$i] -ceq $values[$i]) 'An argument was changed by quoting.' }
+    } finally { $quoted.Dispose() }
+
 
     $unsigned = Join-Path $temporary 'unsigned.exe'
     [IO.File]::WriteAllText($unsigned, 'not an installer')
