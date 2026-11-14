@@ -3,6 +3,8 @@ from contextlib import contextmanager
 import http.client
 import json
 from pathlib import Path
+import shutil
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -14,9 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def running(database):
-    process = subprocess.Popen([sys.executable, str(ROOT / "server.py"), "--port", "0", "--database", str(database)],
-                               cwd=database.parent, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+def running(database, preferred_port=0, root=ROOT):
+    process = subprocess.Popen([sys.executable, str(root / "server.py"), "--port", str(preferred_port), "--database", str(database)],
+                               cwd=database.parent, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding="utf-8")
     try:
         line = process.stdout.readline().strip()
         if not line.startswith("TRACKTOR: http://"):
@@ -44,6 +46,45 @@ def request(port, path, data=None, headers=None, raw=None):
 
 
 class LocalDatabaseTests(unittest.TestCase):
+    def test_occupied_port_and_repeated_launches(self):
+        with tempfile.TemporaryDirectory() as temporary, socket.socket() as occupied:
+            occupied.bind(("127.0.0.1", 0))
+            occupied.listen()
+            taken_port = occupied.getsockname()[1]
+            database = Path(temporary) / "tracktor.sqlite3"
+            with running(database, preferred_port=taken_port) as port:
+                self.assertNotEqual(port, taken_port)
+                status = request(port, "/api/status")[1]
+                command = [sys.executable, str(ROOT / "server.py"), "--database", str(database)]
+                # Concurrent double-clicks must converge on the same running instance.
+                duplicates = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(4)]
+                try:
+                    for duplicate in duplicates:
+                        output, errors = duplicate.communicate(timeout=20)
+                        self.assertEqual(duplicate.returncode, 0, errors.decode("utf-8", errors="replace"))
+                        self.assertIn(f"TRACKTOR: http://127.0.0.1:{port}/", output.decode("utf-8"))
+                    self.assertEqual(request(port, "/api/status")[1]["instance_id"], status["instance_id"])
+                finally:
+                    for duplicate in duplicates:
+                        if duplicate.poll() is None:
+                            duplicate.kill()
+                            duplicate.communicate()
+            # A stale state file after a killed process must not block the next launch.
+            with running(database) as port:
+                self.assertNotEqual(request(port, "/api/status")[1]["instance_id"], status["instance_id"])
+
+    def test_cyrillic_and_shell_characters_in_project_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "Русский путь (скобки) & ! 100% О'Брайен [тест]"
+            project.mkdir()
+            for name in ("server.py", "seed-data.json", "sqlite-schema.sql", "index.html"):
+                shutil.copyfile(ROOT / name, project / name)
+            database = project / "tracktor.sqlite3"
+            with running(database, root=project) as port:
+                self.assertEqual(request(port, "/api/status")[1]["database"], str(database.resolve()))
+                self.assertEqual(request(port, "/")[0], 200)
+                self.assertEqual(request(port, "/api/skills", {"name": "Русский навык (тест) & ! % ' [1]"})[0], 201)
+
     def test_persistence_backup_and_first_run(self):
         with tempfile.TemporaryDirectory(prefix="tracktor test ") as temporary:
             database = Path(temporary) / "данные" / "tracktor.sqlite3"

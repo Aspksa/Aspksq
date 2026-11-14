@@ -3,7 +3,7 @@
   "use strict";
   var status="offline",initPromise=null;
   function request(path,data){
-    if(location.protocol==="file:")return Promise.reject(new Error("Запустите Aspksa.bat и откройте http://127.0.0.1:4173/"));
+    if(location.protocol==="file:")return Promise.reject(new Error("Запустите Aspksa.bat — он сам откроет правильный адрес"));
     var options={cache:"no-store",signal:AbortSignal.timeout(10000)};
     if(data!==undefined){options.method="POST";options.headers={"Content-Type":"application/json"};options.body=JSON.stringify(data);}
     return fetch("/api/"+path,options).then(function(response){

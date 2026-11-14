@@ -910,7 +910,7 @@
       $("authFeedback").textContent="Данные хранятся на этом компьютере: "+info.database+". Вход и регистрация не нужны.";
       $("backupDatabase").disabled=false;
     }).catch(function(){
-      $("authFeedback").textContent="Запустите Aspksa.bat и откройте http://127.0.0.1:4173/. Оставьте окно сервера открытым.";
+      $("authFeedback").textContent="Запустите Aspksa.bat — он сам откроет правильный адрес. Оставьте окно сервера открытым.";
     });
   }
   function hideAuthModal(){$("authModal").classList.add("hidden");}
