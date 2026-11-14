@@ -179,6 +179,11 @@ async function exerciseEveryControl(browser,errors){
     assert.equal(await page.locator('#clientModalFields>div').count(),4,'В карточке клиента не все поля');
     await click('#closeClientModal');await hidden('#clientModal');
     await page.locator('#walletList .wallet-item').nth(1).click();
+    await click('#clientCloseButton');await hidden('#clientModal');
+    await page.locator('#walletList .wallet-item').nth(2).click();
+    await page.locator('#clientModal').click({position:{x:4,y:4}});
+    await hidden('#clientModal');
+    await page.locator('#walletList .wallet-item').first().click();
     await page.keyboard.press('Escape');await hidden('#clientModal');
     await page.locator('#walletList .wallet-item').first().click();
     await click('#clientOpenBrain');await visible('#brainPage');
@@ -215,6 +220,11 @@ async function screenshot(page,name){
       await page.waitForSelector('#walletList .wallet-item',{timeout:15000});
       await inspect(page,vp.width,vp.height,'command');
       await screenshot(page,vp.id+'-command');
+      await checkAllCards(page,'.command-left>.panel',3);
+      await checkAllCards(page,'.command-right>.panel',4);
+      await page.locator('.command-left').evaluate(e=>{e.scrollTop=0;e.scrollLeft=0});
+      await page.locator('.command-right').evaluate(e=>{e.scrollTop=0;e.scrollLeft=0});
+      await page.locator('#commandPage').evaluate(e=>e.scrollTop=0);
       await page.locator('#navBrain').click();
       await page.waitForSelector('#brainSvg .group-node',{timeout:15000});
       await page.locator('#brainLoader').waitFor({state:'hidden',timeout:5000});
