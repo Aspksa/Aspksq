@@ -1,0 +1,39 @@
+name: TRACKTOR · Проверка интерфейса
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "styles.css"
+      - "app.js"
+      - "tests/visual.cjs"
+      - ".github/workflows/visual-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Установить Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Проверить интерфейс на 390 / 740 / 1024 / 1440 px
+        run: node tests/visual.cjs
+      - name: Сохранить снимки экрана
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tracktor-visual-screenshots
+          path: artifacts/screenshots
+          if-no-files-found: ignore
+          retention-days: 14
