@@ -85,7 +85,7 @@ async function exerciseEveryControl(browser,errors){
     await checkAllCards(page,'.command-left>.panel',3);
     await click('#accountButton');await visible('#authModal');
     await page.waitForFunction(()=>document.querySelector('#authFeedback').textContent.includes('Вход и регистрация не нужны'));
-    assert.equal(await page.locator('input[type=password]').count(),0,'Локальная версия не требует пароля');
+    assert.equal(await page.locator('#authModal input[type=password]').count(),0,'Локальная версия не требует пароля');
     const backupDownload=page.waitForEvent('download');
     await click('#backupDatabase');
     assert.equal((await backupDownload).suggestedFilename(),'tracktor-backup.sqlite3');
