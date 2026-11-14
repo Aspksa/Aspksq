@@ -880,6 +880,7 @@
     $("navContact").addEventListener("click",function(){notify("Контакты: подключение к серверу недоступно в демоверсии");});
     $("navSearch").addEventListener("click",function(){openBrain();$("fileSearch").focus();});
     $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
+    $("addSkill").addEventListener("click",function(){notify("Добавление навыка доступно после подключения сервера оригинала");});
     $("navTraffic").addEventListener("click",function(){openBrain();notify("Раздел трафика (демо)");});
     $("navFred").addEventListener("click",function(){openBrain();notify("Обзор файлов");});
     $("navPresent").addEventListener("click",function(){
