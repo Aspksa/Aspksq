@@ -571,10 +571,11 @@
       drawCircle(group,pos[0],pos[1],radius,"#091b27",col,.95,.55);
       drawCircle(group,pos[0],pos[1],radius*.67,"none",col,.8,.29);
       drawCircle(group,pos[0],pos[1],5,col,"none",0,.9);
-      var total=state.expanded?p.files:Math.min(10,p.files);
+      var total=state.expanded?p.files:Math.min(10,p.files),fileSpots=[];
       for(var j=0;j<total;j++){
         var th=random(i*400+j)*Math.PI*2,rr=Math.sqrt(random(i*200+j+22))*radius*.85,pt=polar(pos[0],pos[1],rr,th);
         drawCircle(group,pt[0],pt[1],1.2+random(j+7)*2.2,col,"none",0,.44+random(j+8)*.54);
+        if(j%8===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
       }
       var count=state.expanded?Math.max(4,Math.min(18,Math.round(p.files/5))):3;
       for(var k=0;k<count;k++){
@@ -586,6 +587,7 @@
       drawPlaque(group,pos[0],y,p.name,col,"middle");
       drawText(group,pos[0],y,p.name,col,8,"middle",{class:"node-label"});
       attachNode(drawCircle(group,pos[0],pos[1],radius*.9,"transparent","none",0,1),p,"group");
+      fileSpots.forEach(function(x){attachNode(drawCircle(group,x.pt[0],x.pt[1],5.7,"transparent","none",0,1),x.file,"file");});
     });
     // A necklace of small file badges follows the main document in the circle view.
     for(var m=0;m<27;m++){
@@ -649,12 +651,13 @@
       var titleY=cy-60;
       drawPlaque(group,cx,titleY,p.name,c,"middle");
       drawText(group,cx,titleY,p.name,c,8,"middle",{class:"node-label"});
-      var num=state.expanded?p.files:Math.min(p.files,12);
+      var num=state.expanded?p.files:Math.min(p.files,12),fileSpots=[];
       for(var j=0;j<num;j++){
         var theta=random(i*111+j+6)*6.283,spread=Math.sqrt(random(j+12+i*50))*Math.min(110,r*.8),pt=polar(cx,cy,spread,theta);
-        var dot=drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.8,c,"none",0,.3+random(j+11)*.55);
+        drawCircle(group,pt[0],pt[1],.8+random(j+9)*1.8,c,"none",0,.3+random(j+11)*.55);
+        if(j%8===0)fileSpots.push({pt:pt,file:demoFile(p,i,j)});
         if(state.names&&state.zoom>1.6&&j%16===0){
-          drawText(group,pt[0]+6,pt[1]-4,"файл "+(j+1),c,6,"start",{opacity:".7"});
+          drawText(group,pt[0]+6,pt[1]-4,demoFile(p,i,j).name,c,6,"start",{opacity:".7"});
         }
       }
       for(var k=0;k<6;k++){
@@ -663,6 +666,7 @@
         attachNode(drawCircle(group,edge[0],edge[1],11,"transparent","none",0,1),p,"file");
       }
       attachNode(drawCircle(group,cx,cy,Math.min(43,r*.42),"transparent","none",0,1),p,"group");
+      fileSpots.forEach(function(x){attachNode(drawCircle(group,x.pt[0],x.pt[1],5.8,"transparent","none",0,1),x.file,"file");});
     });
   }
   function forceLayout(parent){
