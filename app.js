@@ -59,7 +59,7 @@
     force:0.02,size:0.40,names:false,theme:"Океан",expanded:true,
     zoom:1,panX:0,panY:0,search:"",hud:false,plaque:false,selected:null,focus:null
   };
-  var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, brainLoadedOnce = false;
+  var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
     return x - Math.floor(x);
@@ -711,9 +711,22 @@
     $("app").classList.replace("mode-command","mode-brain");
     if(!brainLoadedOnce){
       brainLoadedOnce=true;
-      $("brainLoader").classList.remove("hidden");
       clearTimeout(loaderTimer);
-      loaderTimer=setTimeout(function(){$("brainLoader").classList.add("hidden");},680);
+      clearTimeout(revealTimer);
+      $("brainLoader").classList.remove("hidden");
+      $("mapViewport").classList.remove("brain-first-appearance");
+      $("brainSettings").classList.remove("brain-settings-appearance");
+      loaderTimer=setTimeout(function(){
+        $("brainLoader").classList.add("hidden");
+        if(state.page==="brain"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+          $("mapViewport").classList.add("brain-first-appearance");
+          $("brainSettings").classList.add("brain-settings-appearance");
+          revealTimer=setTimeout(function(){
+            $("mapViewport").classList.remove("brain-first-appearance");
+            $("brainSettings").classList.remove("brain-settings-appearance");
+          },1700);
+        }
+      },620);
     }
     $("commandPage").hidden=true;$("brainPage").hidden=false;
     $("brandSection").textContent="Второй мозг";
@@ -732,6 +745,9 @@
   function openCommand(){
     state.page="command";
     clearTimeout(loaderTimer);
+    clearTimeout(revealTimer);
+    $("mapViewport").classList.remove("brain-first-appearance");
+    $("brainSettings").classList.remove("brain-settings-appearance");
     $("brainLoader").classList.add("hidden");
     $("app").classList.replace("mode-brain","mode-command");
     $("brainPage").hidden=true;$("commandPage").hidden=false;
