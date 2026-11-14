@@ -139,6 +139,37 @@
     });
     applyTheme();
   }
+  var selectedClient=null;
+  function showClient(account){
+    selectedClient=account;
+    $("clientModalTitle").textContent=account[0];
+    var holder=$("clientModalFields");holder.textContent="";
+    var fields=[
+      ["ПОДПИСКА",account[1]?"R$ "+account[1]:"Не указана"],
+      ["НАПРАВЛЕНИЕ",account[2]||"Сопровождение"],
+      ["СОСТОЯНИЕ",account[3]==="red"?"Требует внимания":account[3]==="green"?"Активен":"На проверке"],
+      ["ИСТОЧНИК","Видеозапись · демо"]
+    ];
+    fields.forEach(function(field){
+      var cell=dom("div","",undefined,holder);
+      dom("small","",field[0],cell);
+      dom("strong","",field[1],cell);
+    });
+    $("clientModal").classList.remove("hidden");
+    $("closeClientModal").focus();
+  }
+  function hideClient(){$("clientModal").classList.add("hidden");}
+  function commandTooltip(ev,account){
+    var tooltip=$("commandTooltip"),rect=$("commandStage").getBoundingClientRect();
+    tooltip.textContent="";
+    dom("strong","",account[0],tooltip);
+    dom("small","",account[2]||"Сопровождение клиента",tooltip);
+    dom("small","",account[1]?"R$ "+account[1]+" / месяц":"Данные по оплате отсутствуют",tooltip);
+    dom("em","","НАЖМИТЕ, ЧТОБЫ ОТКРЫТЬ КАРТОЧКУ",tooltip);
+    tooltip.style.left=clamp(ev.clientX-rect.left+12,10,Math.max(10,rect.width-222))+"px";
+    tooltip.style.top=clamp(ev.clientY-rect.top+12,10,Math.max(10,rect.height-100))+"px";
+    tooltip.classList.remove("hidden");
+  }
   function renderWallet(){
     var holder=$("walletList");holder.textContent="";
     accounts.forEach(function(a,i){
@@ -152,7 +183,7 @@
       dom("span","wallet-pill",i%7===2?"САЙТ":"▸ ТРАФИК",right);
       row.title="Открыть "+a[0];
       row.style.cursor="pointer";
-      row.addEventListener("click",function(){openBrain(a[0]);});
+      row.addEventListener("click",function(){showClient(a);});
     });
     var alerts=$("alertItems");alerts.textContent="";
     ["Праздник 7/09 · Муока, счета","Докер · Дайане","Проверка утренних счетов","Календарь публикаций · Муока","Публикация в соцсетях · Tojiro","План публикаций · Тодзиро","Новая задача · Механика Примус","Редактирование креативов","3 элемента ждут проверки"].forEach(function(t,i){
@@ -256,13 +287,16 @@
     });
     for(var i=0;i<170;i++){
       var a=random(i+12)*Math.PI*2,rr=Math.sqrt(random(i+980))*47,xy=polar(cx,cy,rr,a);
-      svg("circle",{cx:xy[0],cy:xy[1],r:random(i+99)*2+.5,fill:i%8===0?accent(1):accent(i%3),opacity:.28+random(i+33)*.6},root);
+      var dot=svg("circle",{cx:xy[0],cy:xy[1],r:random(i+99)*2+.5,fill:i%8===0?accent(1):accent(i%3),
+        opacity:.28+random(i+33)*.6,class:i%3===0?"command-star":""},root);
+      if(i%3===0)dot.style.animationDelay=(-(i%16)*.22)+"s";
     }
     for(var j=0;j<38;j++){
       var angle=-Math.PI/2+Math.PI*2*j/38,pt=polar(cx,cy,355,angle);
-      svg("circle",{cx:pt[0],cy:pt[1],r:21,fill:"#0e1c2b",stroke:"#293747","stroke-width":1.1,opacity:.88},root);
-      svg("circle",{cx:pt[0],cy:pt[1],r:8,fill:"none",stroke:"#365265","stroke-width":.8,opacity:.8},root);
-      svg("text",{x:pt[0],y:pt[1]+3,"text-anchor":"middle",fill:"#6f8798","font-family":"var(--mono)","font-size":"8"},root,j%5===0?"1":j%3===0?"◇":"?");
+      var icons=["file","chat","target","chart","star","link","folder","code","calendar","gear"];
+      drawBadge(root,pt[0],pt[1],21,"#537487",icons[j%icons.length],.68);
+      if(j%5===0)svg("text",{x:pt[0],y:pt[1]+30,"text-anchor":"middle",fill:"#486576",
+        "font-family":"var(--mono)","font-size":"8"},root,j%2?"поддержка":"сервис");
       if(j<25){
         var pt2=polar(cx,cy,325,angle);
         svg("line",{x1:pt[0],y1:pt[1],x2:pt2[0],y2:pt2[1],stroke:"#223443","stroke-width":.6},root);
@@ -278,7 +312,10 @@
       var isRight=Math.cos(a)>=0;
       var text=svg("text",{x:pt[0]+(isRight?13:-13),y:pt[1]+3,"text-anchor":isRight?"start":"end",fill:"#7e9eab","font-family":"var(--mono)","font-size":k%3===0?"10":"9",opacity:.82},root,ac[0].substring(0,23));
       var hit=svg("circle",{cx:pt[0],cy:pt[1],r:14,fill:"transparent",class:"account-node"},root);
-      hit.addEventListener("click",function(){openBrain(ac[0]);});
+      hit.addEventListener("pointerenter",function(e){commandTooltip(e,ac);});
+      hit.addEventListener("pointermove",function(e){commandTooltip(e,ac);});
+      hit.addEventListener("pointerleave",function(){$("commandTooltip").classList.add("hidden");});
+      hit.addEventListener("click",function(){$("commandTooltip").classList.add("hidden");showClient(ac);});
       hit.appendChild(svg("title",{},null,ac[0]));
     });
     for(var q=0;q<140;q++){
@@ -694,6 +731,7 @@
     $("brainLoader").classList.add("hidden");
     $("app").classList.replace("mode-brain","mode-command");
     $("brainPage").hidden=true;$("commandPage").hidden=false;
+    hideClient();
     $("brandSection").textContent="Командный центр";
     $("brandSubtitle").textContent="MAX MUNHOZ · АГЕНТ 05";
     document.body.classList.remove("presenting");
@@ -738,6 +776,15 @@
     $("brandButton").addEventListener("click",openCommand);
     ["navBrain","navPower","openBrainButton"].forEach(function(id){$(id).addEventListener("click",function(){openBrain();});});
     $("navBack").addEventListener("click",openCommand);
+    $("closeClientModal").addEventListener("click",hideClient);
+    $("clientCloseButton").addEventListener("click",hideClient);
+    $("clientModal").addEventListener("click",function(ev){if(ev.target===this)hideClient();});
+    $("clientOpenBrain").addEventListener("click",function(){
+      var title=selectedClient?selectedClient[0]:"";
+      hideClient();
+      if(projects.some(function(p){return p.name.toLowerCase().includes(title.toLowerCase());}))openBrain(title);
+      else {openBrain();notify("Карта открыта. Данные этого клиента в демоверсии ограничены");}
+    });
     $("navContact").addEventListener("click",function(){notify("Контакты: подключение к серверу недоступно в демоверсии");});
     $("navSearch").addEventListener("click",function(){openBrain();$("fileSearch").focus();});
     $("navRefresh").addEventListener("click",function(){renderCommand();notify("Панель обновлена");});
@@ -827,6 +874,7 @@
     $("shortcuts").addEventListener("click",function(e){if(e.target===this)this.classList.add("hidden");});
     document.addEventListener("keydown",function(e){
       if(e.key==="Escape"){
+        hideClient();
         $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
         if(document.body.classList.contains("presenting")){document.body.classList.remove("presenting");if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}
         return;
