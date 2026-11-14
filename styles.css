@@ -168,7 +168,7 @@ body.presenting .topbar,body.presenting .brain-settings,body.presenting .canvas-
 body.presenting .zoom-controls{right:23px}
 body.presenting .brain-canvas{width:100vw}
 body.presenting .brain-page{height:100vh}
-body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px;color:#7193a1;font:9px var(--mono);z-index:10;pointer-events:none}
+body.presenting:after{content:'ESC — ВЫХОД';position:fixed;right:15px;top:15px;color:#7193a1;font:9px var(--mono);z-index:10;pointer-events:none}
 @media(min-width:1300px){
   .topbar{height:53px;flex-basis:53px;padding:0 18px}
   .brand-copy strong{font-size:15px}
@@ -197,7 +197,7 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
   .control-section{margin-bottom:11px}
   .clock-line strong{font-size:20px}
 }
-@media(max-width:640px){
+@media(max-width:700px){
   .app{min-height:0}
   .topbar{flex-basis:47px;padding:0 7px}
   .brand-copy strong{font-size:11px}
@@ -304,7 +304,7 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
  .funnel-footer strong{font-size:9px}
  .brain-settings{scrollbar-gutter:auto}
 }
-@media(max-width:640px){
+@media(max-width:700px){
  .command-page{grid-template-rows:minmax(340px,1fr) 215px}
  .command-left{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:stretch}
  .command-left>.panel{margin:0}
@@ -338,7 +338,7 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
  .command-left .wallet-panel{height:calc(100vh - 146px)}
  .command-right .team-panel{height:calc(100vh - 120px)}
 }
-@media(max-width:640px){
+@media(max-width:700px){
  .topbar{height:44px;flex-basis:44px}
  .command-left .wallet-panel,.command-right .team-panel{height:auto}
  .brain-loader{gap:10px}
@@ -444,7 +444,7 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
 @keyframes tip-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @keyframes agent-status{0%,100%{opacity:.49;box-shadow:0 0 1px transparent}50%{opacity:.87;box-shadow:0 0 10px #35d5b922}}
 @media(max-width:800px){.topbar .command-nav{gap:3px}.topbar .icon-button{min-width:21px;width:21px}}
-@media(max-width:640px){.topbar .command-nav #navContact,.topbar .command-nav #navSearch{display:none}.client-dialog{padding:20px}.client-dialog h2{font-size:20px}}
+@media(max-width:700px){.topbar .command-nav #navContact,.topbar .command-nav #navSearch{display:none}.client-dialog{padding:20px}.client-dialog h2{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.team-cell.active:before,.command-tooltip{animation:none}}
 
 /* Accurate video-loading sequence: covers both map and settings, but not the header */
@@ -466,7 +466,7 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
 @keyframes settings-first-appearance{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
 @media(min-width:1300px){.brain-page .brain-loader{top:53px;inset:53px 0 0}}
 @media(min-width:641px) and (max-width:950px){.brain-page .brain-loader{top:33px;inset:33px 0 0}}
-@media(max-width:640px){.brain-page .brain-loader{top:44px;inset:44px 0 0}}
+@media(max-width:700px){.brain-page .brain-loader{top:44px;inset:44px 0 0}}
 @media(prefers-reduced-motion:reduce){
   .brain-page #mapViewport.brain-first-appearance,
   .brain-page .brain-settings.brain-settings-appearance{animation:none}
@@ -478,3 +478,198 @@ body.presenting:after{content:'ESC PARA SAIR';position:fixed;right:15px;top:15px
 #brainSvg .center-ring{animation:none!important}
 #brainSvg #hoverLinks line{stroke-dasharray:none!important;animation:none!important}
 .upcoming p time{display:inline-block;margin-left:4px;font:9px var(--mono);color:var(--accent);white-space:nowrap}
+
+
+/* === 2026-11-14 layout QA: robust Russian typography & responsive structure === */
+:root{--focus:#8bf6d9}
+button{touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+a:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.mobile-only{display:none}
+.panel,.command-center,.brain-settings{min-width:0}
+.panel-heading>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-heading small{flex-shrink:0;max-width:55%;overflow:hidden;text-overflow:ellipsis}
+.wallet-footer{gap:6px}
+.wallet-footer span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wallet-footer strong{flex-shrink:0;white-space:nowrap}
+.clock-line{align-items:center}
+.clock-line small{font-size:8px;line-height:1.4;text-align:right}
+.command-left .now-panel{height:346px;min-height:346px;overflow:hidden}
+.command-left .now-panel .upcoming{padding:10px 12px}
+.command-left .now-panel .upcoming p{line-height:1.6;margin:6px 0;overflow-wrap:anywhere}
+.command-right .alerts-panel{height:330px;min-height:330px;overflow:auto}
+.alert-items div{white-space:normal;overflow-wrap:anywhere;line-height:1.5;min-height:29px}
+.alert-items b{display:inline-block;min-width:31px}
+.command-center .command-stage-head{pointer-events:none}
+.command-open{z-index:4}
+.command-open:focus-visible{opacity:1}
+.skill-name{font-size:9px;line-height:1.4;overflow-wrap:anywhere;word-break:normal}
+.skills-grid{align-items:stretch}
+.skill-card{min-width:0;min-height:95px}
+.skill-controls{margin-top:auto}
+.skill-meta{line-height:1.35;letter-spacing:.04em;overflow-wrap:anywhere}
+.skills-footer{line-height:1.5}
+.skills-footer span{overflow-wrap:anywhere}
+.routine-list{min-height:0}
+.routine-name{font-weight:600}
+.routine-footer{line-height:1.45}
+.routine-footer>span:last-child{float:none;display:inline-flex;margin-left:6px}
+.now-panel .mini-calendar{padding-inline:10px}
+.mini-calendar span{font-variant-numeric:tabular-nums}
+.brain-settings{min-width:0}
+.brain-settings .segmented button{flex:1 1 auto;white-space:nowrap}
+.brain-settings .subcontrol{flex-wrap:wrap}
+.brain-settings .mini-chip{white-space:nowrap}
+.brain-settings .slider-section label:not(.check-label){flex-wrap:wrap;gap:4px;line-height:1.4}
+.brain-settings .slider-section output{margin-left:auto;font-variant-numeric:tabular-nums}
+.brain-settings .button-row button{overflow-wrap:anywhere;padding-inline:5px}
+.brain-settings .theme-item{min-width:0}
+.brain-settings .theme-strip{overflow:hidden}
+.brain-settings .theme-label{overflow-wrap:anywhere;line-height:1.4}
+.brain-settings .settings-footer{flex-wrap:wrap;line-height:1.6}
+#brainSvg .hex-cell{cursor:pointer}
+#brainSvg .map-badge{pointer-events:none}
+.map-tooltip{z-index:6}
+.command-tooltip{z-index:6}
+.toast{max-width:min(calc(100vw - 30px),460px);text-align:center;line-height:1.5}
+.shortcut-card,.shortcuts-card{max-height:calc(100dvh - 32px);overflow-y:auto}
+.client-dialog{max-height:calc(100dvh - 28px);overflow-y:auto}
+@media(min-width:1100px){
+ .command-page{grid-template-columns:minmax(230px,24%) minmax(350px,1fr) minmax(260px,27%)}
+ .command-left .wallet-panel{height:calc(100dvh - 154px)}
+ .command-right .team-panel{height:calc(100dvh - 142px)}
+ .team-grid{grid-auto-rows:minmax(17px,1fr)}
+ .panel-heading{padding-inline:11px}
+ .brain-settings{width:300px;flex-basis:300px}
+ .brain-settings .segmented button{font-size:10px}
+}
+@media(min-width:701px) and (max-width:1099px){
+ .command-page{grid-template-columns:minmax(165px,26%) minmax(0,1fr) minmax(174px,28%);gap:7px;padding:7px}
+ .command-left .wallet-panel{height:calc(100dvh - 138px);min-height:340px}
+ .command-right .team-panel{height:calc(100dvh - 124px);min-height:385px}
+ .command-left .now-panel{height:318px;min-height:318px}
+ .command-right .alerts-panel{height:320px;min-height:320px}
+ .panel-heading{letter-spacing:.065em}
+ .panel-heading small{max-width:48%;font-size:7px}
+ .wallet-footer{padding:0 5px;font-size:7px}
+ .wallet-footer strong{font-size:8px}
+ .team-grid{gap:1px}
+ .skills-grid{gap:5px}
+ .skill-card{padding:8px 6px}
+ .skill-name{font-size:8px}
+ .skill-meta{font-size:7px}
+ .brain-settings{scrollbar-gutter:auto}
+ .brain-settings .segmented{gap:3px}
+ .brain-settings .segmented button{font-size:8px;padding:5px 6px}
+ .brain-settings .button-row button{font-size:8px}
+}
+@media(max-width:700px){
+ .app{height:100dvh;min-height:0}
+ .topbar{flex:0 0 48px;min-height:48px;height:48px;gap:5px;padding:0 10px}
+ .brand{gap:7px;min-width:0}
+ .brand-mark{height:24px;width:24px;flex-shrink:0}
+ .brand-copy{min-width:0}
+ .brand-copy strong{font-size:10px;letter-spacing:0;white-space:nowrap}
+ .brand-copy small{font-size:7px;letter-spacing:0}
+ .topbar-right{gap:3px;flex-shrink:0}
+ .system-status{display:none}
+ .command-nav,.brain-nav{gap:3px}
+ .command-nav .icon-button{display:inline-flex;min-width:28px;height:28px}
+ .command-nav #navContact{display:none}
+ .command-nav #navSearch{display:inline-flex}
+ .top-action{height:30px;padding:0 7px}
+ .mobile-only{display:inline}
+ .desktop-only{display:none}
+ .header-menu{top:44px;right:9px;max-width:calc(100vw - 18px)}
+ .command-page{
+   display:grid;grid-template-columns:minmax(0,1fr);
+   grid-template-rows:minmax(310px,52dvh) 355px 415px;
+   align-content:start;gap:10px;padding:10px;
+   overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
+   overscroll-behavior-y:contain;min-height:0
+ }
+ .command-center{grid-column:1;grid-row:1;min-height:0}
+ .command-svg{inset:8% 0 4%;height:88%}
+ .command-stage-head{top:14px}
+ .command-stage-head h1{font-size:16px}
+ .stage-ticker{font-size:8px}
+ .command-left,.command-right{
+   display:flex;grid-column:1;min-height:0;height:100%;
+   flex-direction:row;gap:8px;align-items:stretch;
+   overflow-x:auto;overflow-y:hidden;
+   scroll-snap-type:x proximity;scroll-padding-inline:2px;
+   scrollbar-width:thin;scrollbar-color:#315968 transparent
+ }
+ .command-left{grid-row:2}
+ .command-right{grid-row:3}
+ .command-left>.panel,.command-right>.panel{
+   display:flex;flex-direction:column;flex:0 0 min(83vw,325px);
+   min-width:min(83vw,325px);max-width:none;
+   margin:0;height:100%;min-height:0;overflow:hidden;
+   scroll-snap-align:start
+ }
+ .command-left .wallet-panel,.command-left .now-panel,.command-left .funnel-panel,
+ .command-right .team-panel,.command-right .alerts-panel,.command-right .skills-panel,
+ .command-right .routines-panel{
+   height:100%;min-height:0;max-width:none;overflow:hidden;flex:0 0 min(83vw,325px)
+ }
+ .command-left .wallet-list{overflow-y:auto;flex:1}
+ .command-left .now-panel .upcoming{display:block;padding:8px 11px}
+ .command-left .now-panel .mini-calendar{grid-auto-rows:18px;padding:0 11px}
+ .command-left .funnel-list{overflow-y:auto}
+ .command-right .team-grid{overflow-y:auto;grid-auto-rows:15px}
+ .command-right .alerts-panel .alert-items{overflow-y:auto}
+ .command-right .skills-grid{overflow-y:auto;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .command-right .routines-panel .routine-list{overflow-y:auto}
+ .panel-heading{min-height:33px;flex:0 0 33px}
+ .panel-heading small{max-width:57%}
+ .wallet-footer{flex:0 0 35px}
+ .brain-page{display:flex;flex-direction:column;min-height:0}
+ .brain-canvas{flex:1 1 auto;min-height:210px}
+ .brain-settings{
+   display:block;flex:0 0 clamp(220px,35dvh,340px);
+   height:clamp(220px,35dvh,340px);min-height:0;
+   width:100%;padding:12px 15px;overflow-y:auto;overflow-x:hidden;
+   border-left:0;border-top:1px solid #2b4554;
+   border-radius:9px 9px 0 0;
+   box-shadow:0 -14px 30px #0005
+ }
+ .brain-settings .search-wrap{margin-bottom:14px}
+ .brain-settings .control-section{margin-bottom:14px}
+ .brain-settings .slider-section{grid-column:auto;grid-row:auto}
+ .brain-settings .theme-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .brain-settings .theme-section{grid-column:auto}
+ .brain-settings .segmented button{font-size:10px;min-height:32px}
+ .brain-settings .button-row button{min-height:38px;font-size:9px}
+ .brain-settings .save-row button{min-height:44px}
+ .canvas-hint{left:10px;bottom:9px;max-width:calc(100% - 125px);line-height:1.6;font-size:7px;white-space:normal}
+ .zoom-controls{bottom:10px;right:10px}
+ .zoom-controls button{width:30px;height:30px}
+ .shortcuts-card{padding:22px}
+ .shortcuts-card h2{line-height:1.5}
+}
+@media(max-width:420px){
+ .brand-mark{width:22px;height:22px}
+ .brand-copy strong{font-size:9px}
+ .brand-copy small{font-size:6px}
+ .topbar{padding-inline:7px}
+ .brain-nav #navPresent .present-label{display:none}
+ .brain-nav #navPresent{font-size:14px;min-width:30px}
+ .brain-nav #navBack{font-size:9px}
+ .command-nav .icon-button{min-width:26px;width:26px}
+ .command-page{grid-template-rows:minmax(290px,49dvh) 340px 390px;padding:8px}
+ .command-left>.panel,.command-right>.panel{
+   flex-basis:90vw;min-width:90vw
+ }
+ .command-left .wallet-panel,.command-left .now-panel,.command-left .funnel-panel,
+ .command-right .team-panel,.command-right .alerts-panel,.command-right .skills-panel,
+ .command-right .routines-panel{flex-basis:90vw}
+ .brain-settings{padding:12px;height:clamp(230px,38dvh,320px);flex-basis:clamp(230px,38dvh,320px)}
+ .brain-settings .theme-list{grid-template-columns:1fr 1fr}
+}
+@media(max-height:580px) and (min-width:701px){
+ .command-left .wallet-panel,.command-right .team-panel{min-height:280px;height:calc(100dvh - 100px)}
+ .command-left .now-panel{min-height:310px}
+ .command-center .command-stage-head{top:9px}
+ .brain-settings{padding-top:7px}
+}
