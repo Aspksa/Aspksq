@@ -23,8 +23,9 @@ try {
         $quoted.Start() | Out-Null
         $encoded = $quoted.StandardOutput.ReadToEndAsync()
         Assert-True ($quoted.WaitForExit(10000)) 'Argument round-trip timed out.'
-        $decoded = @($encoded.GetAwaiter().GetResult() | ConvertFrom-Json)
-        Assert-True ($decoded.Count -eq $values.Count) 'Argument count changed.'
+        $encodedText = $encoded.GetAwaiter().GetResult()
+        $decoded = $encodedText | ConvertFrom-Json
+        Assert-True ($decoded.Count -eq $values.Count) ('Argument count changed: expected=' + $values.Count + '; actual=' + $decoded.Count + '; raw=' + $encodedText + '; command=' + $quoted.StartInfo.Arguments)
         for ($i=0; $i -lt $values.Count; $i++) { Assert-True ($decoded[$i] -ceq $values[$i]) 'An argument was changed by quoting.' }
     } finally { $quoted.Dispose() }
 
