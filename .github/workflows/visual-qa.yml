@@ -20,6 +20,7 @@ on:
       - "knowledge.js"
       - "tests/knowledge-ui.cjs"
       - "tests/trace-ui.cjs"
+      - "tests/graph-tools.cjs"
       - "tests/assistant-ui.cjs"
       - "cloud.js"
       - "sqlite-schema.sql"
@@ -55,6 +56,7 @@ jobs:
           node tests/assistant-ui.cjs
           node tests/knowledge-ui.cjs
           node tests/trace-ui.cjs
+          node tests/graph-tools.cjs
       - name: Сохранить снимки экрана
         if: always()
         uses: actions/upload-artifact@v4

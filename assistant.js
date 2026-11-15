@@ -6,6 +6,7 @@
   var state={sessions:[],session_id:null,turns:[],active:null},settings={},busy=false,posting=false,opened=false,timer=null,generation=0;
   var pending=null,drafts={},positionQueue=Promise.resolve(),positionVersion=0;
   var graphMode=false,graphPreference=null,graphRequest=0,graphSignature='',traceNode=null,traceFocus=null;
+  var standaloneTimer=null,standaloneTicket=0,lastGraph=null;
   try{graphPreference=localStorage.getItem('tracktor-chat-graph');}catch(ignored){}
   try{pending=JSON.parse(sessionStorage.getItem('tracktor-chat-pending')||'null');}catch(ignored){}
   if(pending&&(!pending.request_id||!pending.session_id||typeof pending.task!=='string'))pending=null;
@@ -85,7 +86,7 @@
       if(graphPreference==='off'||!(graphPreference==='on'||latest&&latest.sources&&latest.sources.length))return;
       graphMode=true;mobileState();
     }
-    var signature=state.session_id+':'+(latest?latest.id+':'+latest.status:'empty');
+    var signature=state.session_id+':'+(latest?latest.id+':'+latest.status+':'+(latest.context_turns===null?'preparing':'context-ready'):'empty');
     if(!force&&signature===graphSignature)return;
     graphSignature=signature;var ticket=++graphRequest,sessionId=state.session_id;
     try{
@@ -98,6 +99,7 @@
       select.value=graph.current_turn||'';
       $('chatGraphStatus').textContent=graph.current_turn?'Источники: '+graph.documents+' · нажмите узел для деталей':'Путь появится после первого запроса';
       window.TracktorBrain.showTrace(graph,!force);
+      lastGraph=graph;
       $('traceKnowledge').textContent='Все знания';
     }catch(error){if(ticket===graphRequest&&opened){graphSignature='';$('chatGraphStatus').textContent=error.message;}}
   }
@@ -105,7 +107,7 @@
   async function openTrace(id){if(!opened)await open();if(!opened)return;preferGraph(true);graphMode=true;mobileState();syncTrace(true,id);}
   function closeTraceNode(){traceNode=null;$('traceModal').classList.add('hidden');if(traceFocus&&traceFocus.isConnected)traceFocus.focus();else if(opened)$('chatClose').focus();}
   async function inspectNode(node){
-    traceNode=node;traceFocus=document.activeElement;$('traceModal').classList.remove('hidden');$('traceTitle').textContent='Читаю данные узла…';$('traceContent').textContent='';$('traceMeta').textContent='';$('traceOpenMaterial').hidden=true;$('traceClose').focus();
+    traceNode=node;traceFocus=document.activeElement;$('traceModal').classList.remove('hidden');$('traceTitle').textContent='Читаю данные узла…';$('traceContent').textContent='';$('traceMeta').textContent='';$('traceOpenMaterial').hidden=true;$('traceOpenHistory').hidden=true;$('traceClose').focus();
     try{
       if(node.type==='document'){
         $('traceTitle').textContent=node.title;$('traceMeta').textContent='Фрагмент базы знаний · версия '+node.revision+' · снимок на момент запроса';$('traceContent').textContent=node.excerpt;$('traceOpenMaterial').hidden=false;return;
@@ -114,9 +116,33 @@
       var statuses={running:'Выполняется',succeeded:'Ответ получен',partial:'Частичный ответ',failed:'Ошибка',interrupted:'Прервано'},phase=statuses[turn.status]||turn.status;
       $('traceMeta').textContent='Модель: '+turn.model+' · '+new Date(turn.created_at).toLocaleString('ru-RU')+' · '+phase;
       if(node.type==='query'){$('traceTitle').textContent='Что было запрошено';$('traceContent').textContent=turn.task+'\n\nМатериалы: '+(turn.sources||[]).map(function(source){return source.title+' (v'+source.revision+')';}).join(', ')+'\nОбменов из истории: '+(turn.context_turns?turn.context_turns.length:'состав не сохранён для этого запроса');}
+      else if(node.type==='history'){$('traceTitle').textContent='Обмен, включённый в контекст';$('traceContent').textContent='Вопрос:\n'+turn.task+'\n\nОтвет:\n'+turn.result;node.history_turn_id=turn.id;$('traceOpenHistory').hidden=false;}
       else if(node.type==='model'){$('traceTitle').textContent='Куда направлен запрос';$('traceContent').textContent='Cloud.ru Foundation Models\nМодель: '+turn.model+'\nСтатус: '+phase+'\n\nПередаваемые данные: вопрос, системная инструкция, выбранная история и найденные фрагменты материалов.\n\n'+(turn.error||'')+(turn.usage&&turn.usage.total_tokens?'\nТокенов: '+turn.usage.total_tokens:'')+(turn.status==='failed'||turn.status==='interrupted'?'\n\nОбработка запроса облаком может быть не подтверждена.':'')+'\n\nПросмотр графа не отправляет запрос модели.';}
       else{$('traceTitle').textContent='Что получено';$('traceContent').textContent=turn.result||turn.error||'Ответ ещё не получен.';}
     }catch(error){if(traceNode===node){$('traceTitle').textContent='Данные недоступны';$('traceContent').textContent=error.message;}}
+  }
+  async function inspectEdge(edge,graph){
+    var source=graph.nodes.find(function(node){return node.id===edge.source;}),target=graph.nodes.find(function(node){return node.id===edge.target;}),entry={type:'edge',edge:edge,turn_id:graph.current_turn};
+    traceNode=entry;traceFocus=document.activeElement;$('traceModal').classList.remove('hidden');$('traceTitle').textContent='Карточка связи';$('traceMeta').textContent=edge.label;$('traceContent').textContent='Читаю сохранённые данные…';$('traceOpenMaterial').hidden=true;$('traceOpenHistory').hidden=true;$('traceClose').focus();
+    try{
+      if(edge.kind==='source'){
+        entry.id=source.id;$('traceTitle').textContent='Материал → запрос';$('traceMeta').textContent=source.title+' · версия '+source.revision+' · '+new Date(source.updated_at).toLocaleString('ru-RU');
+        $('traceContent').textContent='Сохранённый фрагмент:\n'+source.excerpt;$('traceOpenMaterial').hidden=false;
+        var current=await api('chat/turns/'+encodeURIComponent(graph.current_turn));if(traceNode!==entry)return;$('traceContent').textContent+='\n\nДля вопроса:\n'+current.task;return;
+      }
+      if(edge.kind==='history'){
+        var exchanges=await Promise.all([api('chat/turns/'+encodeURIComponent(source.turn_id)),api('chat/turns/'+encodeURIComponent(graph.current_turn))]);if(traceNode!==entry)return;var previous=exchanges[0];
+        entry.history_turn_id=previous.id;$('traceTitle').textContent='История → новый запрос';$('traceContent').textContent='Предыдущий вопрос:\n'+previous.task+'\n\nПредыдущий ответ:\n'+previous.result+'\n\nВключено в контекст вопроса:\n'+exchanges[1].task;$('traceOpenHistory').hidden=false;return;
+      }
+      var turn=await api('chat/turns/'+encodeURIComponent(graph.current_turn));if(traceNode!==entry)return;
+      if(edge.kind==='request'){
+        $('traceTitle').textContent='Запрос → '+turn.model;$('traceMeta').textContent='Сохранённые вопрос и контекст';
+        var blocks=['Вопрос:\n'+turn.task];(turn.sources||[]).forEach(function(doc,index){blocks.push('Материал ['+(index+1)+'] '+doc.title+' · версия '+doc.revision+'\n'+doc.excerpt);});
+        var history=await Promise.all((turn.context_turns||[]).map(function(id){return api('chat/turns/'+encodeURIComponent(id));}));if(traceNode!==entry)return;
+        history.forEach(function(item,index){blocks.push('История ['+(index+1)+']\nВопрос: '+item.task+'\nОтвет: '+item.result);});
+        if(turn.context_turns===null)blocks.push('Состав истории для этого старого запроса не сохранён.');$('traceContent').textContent=blocks.join('\n\n');
+      }else{$('traceTitle').textContent=turn.model+' → результат';$('traceMeta').textContent='Сохранённый ответ или ошибка';$('traceContent').textContent=turn.result||turn.error||'Ответ ещё ожидается.';}
+    }catch(error){if(traceNode===entry)$('traceContent').textContent=error.message;}
   }
   function article(role,text,detail){
     var item=document.createElement('article');item.className='assistant-message '+role;
@@ -184,7 +210,7 @@
     }catch(error){if(token===generation&&opened){status(error.message,true);if(state.active)schedule();}}
   }
   async function open(){
-    if(opened)return;opened=true;var token=++generation;panel.classList.remove('hidden');avatar.setAttribute('aria-expanded','true');mobileState();$('chatClose').focus();busy=true;controls();status('Открываю локальную историю…');
+    if(opened)return;clearTimeout(standaloneTimer);standaloneTicket++;opened=true;var token=++generation;panel.classList.remove('hidden');avatar.setAttribute('aria-expanded','true');mobileState();$('chatClose').focus();busy=true;controls();status('Открываю локальную историю…');
     try{
       var loaded=await Promise.all([api('cloud/settings'),api('chat')]);if(token!==generation)return;
       settings=loaded[0];state=loaded[1];
@@ -202,6 +228,18 @@
     if(!opened)return;if(state.session_id&&!pending)drafts[state.session_id]=$('chatInput').value;
     opened=false;generation++;clearTimeout(timer);panel.classList.add('hidden');avatar.setAttribute('aria-expanded','false');mobileState();avatar.focus();
     graphRequest++;graphMode=false;graphSignature='';mobileState();
+    watchStandaloneGraph();
+  }
+  function watchStandaloneGraph(){
+    clearTimeout(standaloneTimer);
+    if(opened||!lastGraph||!['preparing','waiting'].includes(lastGraph.phase)||!window.TracktorBrain.isTrace()||$('brainPage').hidden)return;
+    var ticket=standaloneTicket;
+    standaloneTimer=setTimeout(async function(){
+      if(opened||ticket!==standaloneTicket||!window.TracktorBrain.isTrace()||$('brainPage').hidden)return;
+      try{var graph=await api('chat/graph?session_id='+encodeURIComponent(lastGraph.session_id)+'&turn_id='+encodeURIComponent(lastGraph.current_turn));if(opened||ticket!==standaloneTicket||!window.TracktorBrain.isTrace()||$('brainPage').hidden)return;lastGraph=graph;window.TracktorBrain.showTrace(graph,true);}
+      catch(error){if(!opened&&ticket===standaloneTicket)$('chatGraphStatus').textContent=error.message;}
+      watchStandaloneGraph();
+    },1300);
   }
   $('chatClose').addEventListener('click',close);
   $('chatInput').addEventListener('input',controls);
@@ -214,6 +252,7 @@
   $('traceKnowledge').addEventListener('click',function(){if(this.textContent==='Путь запроса'){syncTrace(true,$('traceTurn').value);return;}graphRequest++;window.TracktorKnowledge.showSources([]);this.textContent='Путь запроса';$('chatGraphStatus').textContent='Карта материалов · вернитесь кнопкой «Путь запроса»';});
   $('traceClose').addEventListener('click',closeTraceNode);
   $('traceOpenMaterial').addEventListener('click',function(){var id=traceNode&&traceNode.id;closeTraceNode();if(id)window.TracktorKnowledge.open(id);});
+  $('traceOpenHistory').addEventListener('click',function(){var id=traceNode&&traceNode.history_turn_id;closeTraceNode();if(id)selectTrace(id);});
   $('traceModal').addEventListener('click',function(event){if(event.target===this)closeTraceNode();});
   $('traceModal').addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Tab'){var items=Array.from($('traceDialog').querySelectorAll('button:not([hidden])')),first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
   $('chatRefresh').addEventListener('click',async function(){if(busy)return;busy=true;controls();await refresh(true);busy=false;controls();});
@@ -244,6 +283,6 @@
       else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     }
   });
-  document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(traceNode){event.preventDefault();event.stopImmediatePropagation();closeTraceNode();}else if(opened){event.preventDefault();event.stopImmediatePropagation();close();}},true);
-  window.TracktorAssistant={openTrace:openTrace,selectTrace:selectTrace,inspectNode:inspectNode};
+  document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(traceNode){event.preventDefault();event.stopImmediatePropagation();closeTraceNode();}else if(!$('traceTools').hidden){event.preventDefault();event.stopImmediatePropagation();window.TracktorBrain.closeTraceTools();}else if(opened){event.preventDefault();event.stopImmediatePropagation();close();}},true);
+  window.TracktorAssistant={openTrace:openTrace,selectTrace:selectTrace,inspectNode:inspectNode,inspectEdge:inspectEdge};
 })();

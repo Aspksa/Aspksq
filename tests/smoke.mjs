@@ -31,7 +31,8 @@ const required = [
   'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch',
   'assistantAvatar','assistantChat','chatForm','chatInput','chatSession','chatSend',
   'chatKnowledge','chatMaterials','knowledgeModal','knowledgeBody','knowledgeMode','demoMode',
-  'chatGraphToggle','traceTurn','traceModal','traceContent','traceMode'
+  'chatGraphToggle','traceTurn','traceModal','traceContent','traceMode',
+  'traceToolsToggle','traceFitAll','traceZoomSelected','traceFocus','traceSearch','traceLegend','tracePhase'
 ];
 for(const id of required)assert.ok(ids.has(id), 'Отсутствует элемент '+id);
 
