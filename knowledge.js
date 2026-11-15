@@ -43,5 +43,5 @@
   document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!$('knowledgeModal').classList.contains('hidden')){event.preventDefault();event.stopImmediatePropagation();close();}},true);
   $('knowledgeModal').addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Tab'){var items=Array.from($('knowledgeDialog').querySelectorAll('button:not(:disabled),input:not(:disabled),textarea:not(:disabled)')),first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
   window.TracktorKnowledge={open:open,showSources:showSources};
-  api('/graph').then(function(graph){if(graph.documents)window.TracktorBrain.showKnowledge(graph,[],true);else window.TracktorBrain.updateKnowledge(graph);}).catch(function(){});
+  api('/graph').then(function(graph){if(window.TracktorBrain.isTrace())return;if(graph.documents)window.TracktorBrain.showKnowledge(graph,[],true);else window.TracktorBrain.updateKnowledge(graph);}).catch(function(){});
 })();

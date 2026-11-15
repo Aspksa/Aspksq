@@ -16,6 +16,7 @@ on:
       - 'knowledge.js'
       - 'tests/test_knowledge.py'
       - 'tests/test_chat.py'
+      - 'tests/test_chat_graph.py'
       - 'cloud.js'
       - 'tests/test_local_db.py'
       - 'tests/test_cloudru.py'

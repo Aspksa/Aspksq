@@ -156,7 +156,7 @@ class SkillRunTests(unittest.TestCase):
             server.initialize(database)
             run_id=str(uuid.uuid4())
             with closing(server.connect(database)) as connection,connection:
-                self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0],5)
+                self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0],6)
                 self.assertEqual(connection.execute('SELECT api_key FROM cloudru_settings').fetchone()[0],KEY)
                 self.assertEqual(connection.execute('SELECT count(*) FROM clients').fetchone()[0],19)
                 connection.execute("INSERT INTO skill_runs(id,skill_id,skill_name,description,model,task,max_tokens,status,created_at) VALUES(?,?,?,?,?,?,2048,'running',?)",

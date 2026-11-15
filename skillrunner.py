@@ -48,6 +48,8 @@ def public_run(row):
     result["usage"] = json.loads(result["usage"])
     if 'sources' in result:
         result['sources'] = json.loads(result['sources'])
+    if 'context_turns' in result and result['context_turns'] is not None:
+        result['context_turns'] = json.loads(result['context_turns'])
     return result
 
 

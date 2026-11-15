@@ -103,6 +103,10 @@
     </main>
     <main class="brain-page" id="brainPage" hidden>
       <section class="brain-canvas">
+        <div class="trace-workbar" id="traceWorkbar">
+          <span>ПУТЬ ДАННЫХ</span><label class="assistant-sr" for="traceTurn">Запрос на графе</label><select id="traceTurn"><option value="">Запросов пока нет</option></select>
+          <button id="traceKnowledge" type="button">Все знания</button>
+        </div>
         <div class="canvas-noise"></div>
         <div class="brain-loader hidden" id="brainLoader" aria-live="polite">
           <span class="loader-label">СОБИРАЕМ МОЗГ</span>
@@ -124,6 +128,7 @@
           <h2>БАЗА ЗНАНИЙ</h2>
           <div class="segmented"><button type="button" id="knowledgeMode">Мои знания</button><button type="button" id="demoMode" class="active">Демонстрация</button></div>
           <button type="button" id="knowledgeManage" class="knowledge-manage">＋ Добавить материал</button>
+          <button type="button" id="traceMode" class="knowledge-manage">↗ Запросы чата</button>
           <p id="knowledgeMapStatus" class="dialog-note">Личные материалы и связи по меткам.</p>
         </section>
         <div class="search-wrap">
@@ -314,6 +319,7 @@
     </div>
     <div class="assistant-model"><span id="chatModel">Проверяю модель…</span><button id="chatSettings" type="button">Настроить</button></div>
     <div class="assistant-knowledge"><label><input id="chatKnowledge" type="checkbox" checked> По моей базе знаний</label><button id="chatMaterials" type="button">Материалы</button></div>
+    <div class="assistant-graph-controls"><button id="chatGraphToggle" type="button" aria-pressed="false">Чат + граф запроса</button><span id="chatGraphStatus">Материалы → запрос → модель → ответ</span></div>
     <div id="chatMessages" class="assistant-messages" aria-label="Сообщения диалога" tabindex="0"></div>
     <p id="chatStatus" class="assistant-status" role="status" aria-live="polite"></p>
     <form id="chatForm" class="assistant-composer">
@@ -327,6 +333,14 @@
       <p class="assistant-note">Cloud.ru · запросы расходуют токены. При включённой базе передаются найденные фрагменты материалов. История сохраняется локально.</p>
     </form>
   </section>
+  <div class="client-modal hidden" id="traceModal" role="dialog" aria-modal="true" aria-labelledby="traceTitle">
+    <section class="client-dialog trace-dialog" id="traceDialog">
+      <button class="client-close" id="traceClose" type="button" aria-label="Закрыть данные узла">×</button>
+      <p class="dialog-kicker">ВТОРОЙ МОЗГ · ДАННЫЕ ЗАПРОСА</p><h2 id="traceTitle">Узел запроса</h2>
+      <p class="dialog-note" id="traceMeta"></p><pre id="traceContent" class="trace-content"></pre>
+      <button id="traceOpenMaterial" type="button" class="knowledge-manage" hidden>Открыть материал в базе знаний</button>
+    </section>
+  </div>
   <script src="database.js" defer></script>
   <script src="app.js" defer></script>
   <script src="cloud.js" defer></script>

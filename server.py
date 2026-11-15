@@ -50,9 +50,9 @@ def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 5:
+        if version > 6:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
-        if version == 5:
+        if version == 6:
             return
         connection.execute("BEGIN IMMEDIATE")
         schema = (ROOT / "sqlite-schema.sql").read_text(encoding="utf-8")
@@ -72,7 +72,9 @@ def initialize(database):
             connection.execute('ALTER TABLE chat_turns ADD COLUMN include_knowledge INTEGER NOT NULL DEFAULT 0')
         if 'sources' not in columns:
             connection.execute("ALTER TABLE chat_turns ADD COLUMN sources TEXT NOT NULL DEFAULT '[]'")
-        connection.execute("PRAGMA user_version=5")
+        if 'context_turns' not in columns:
+            connection.execute('ALTER TABLE chat_turns ADD COLUMN context_turns TEXT')
+        connection.execute("PRAGMA user_version=6")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -140,6 +142,9 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/chat":
                 session_id = parse_qs(urlsplit(self.path).query).get("session_id", [None])[0]
                 self.send_json(200, ChatRunner(self.database, connect).snapshot(session_id))
+            elif path == '/api/chat/graph':
+                query = parse_qs(urlsplit(self.path).query)
+                self.send_json(200, ChatRunner(self.database, connect).graph(query.get('session_id', [None])[0], query.get('turn_id', [None])[0]))
             elif path.startswith("/api/chat/turns/"):
                 self.send_json(200, ChatRunner(self.database, connect).get(path.rsplit("/", 1)[-1]))
             elif path == "/api/skill-catalog":

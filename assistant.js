@@ -5,6 +5,8 @@
   var avatar=$('assistantAvatar'),panel=$('assistantChat'),position={x:1,y:1},moved=false,drag=null,suppressClick=false;
   var state={sessions:[],session_id:null,turns:[],active:null},settings={},busy=false,posting=false,opened=false,timer=null,generation=0;
   var pending=null,drafts={},positionQueue=Promise.resolve(),positionVersion=0;
+  var graphMode=false,graphPreference=null,graphRequest=0,graphSignature='',traceNode=null,traceFocus=null;
+  try{graphPreference=localStorage.getItem('tracktor-chat-graph');}catch(ignored){}
   try{pending=JSON.parse(sessionStorage.getItem('tracktor-chat-pending')||'null');}catch(ignored){}
   if(pending&&(!pending.request_id||!pending.session_id||typeof pending.task!=='string'))pending=null;
   function savePending(value){pending=value;try{if(value)sessionStorage.setItem('tracktor-chat-pending',JSON.stringify(value));else sessionStorage.removeItem('tracktor-chat-pending');}catch(ignored){}}
@@ -62,7 +64,7 @@
     else if(directions[event.key]){event.preventDefault();var b=bounds(),step=event.shiftKey?64:16,d=directions[event.key];position.x=b.x?Math.max(0,Math.min(1,position.x+d[0]*step/b.x)):0;position.y=b.y?Math.max(0,Math.min(1,position.y+d[1]*step/b.y)):0;place();rememberPosition();}
     event.stopPropagation();
   });
-  function mobileState(){var modal=opened&&window.matchMedia('(max-width: 700px)').matches;panel.setAttribute('aria-modal',String(modal));document.querySelector('.app').inert=modal;avatar.hidden=modal;}
+  function mobileState(){var modal=opened&&!graphMode&&window.matchMedia('(max-width: 700px)').matches;panel.setAttribute('aria-modal',String(modal));document.querySelector('.app').inert=modal;avatar.hidden=modal||opened&&graphMode;document.body.classList.toggle('graph-chat-open',opened&&graphMode);$('chatGraphToggle').setAttribute('aria-pressed',String(graphMode));}
   window.addEventListener('resize',function(){place();mobileState();});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',function(){panel.style.setProperty('--chat-height',window.visualViewport.height+'px');panel.style.setProperty('--chat-top',window.visualViewport.offsetTop+'px');});
   function controls(){
@@ -74,6 +76,47 @@
     $('chatSettings').disabled=busy||posting||Boolean(pending);$('chatRefresh').disabled=busy||posting;
     $('chatMaterials').disabled=busy||posting;
     avatar.classList.toggle('is-thinking',active);avatar.setAttribute('aria-busy',String(active));
+  }
+  function preferGraph(value){graphPreference=value?'on':'off';try{localStorage.setItem('tracktor-chat-graph',graphPreference);}catch(ignored){}}
+  async function syncTrace(force,turnId){
+    if(!opened)return;
+    var latest=state.turns[state.turns.length-1];
+    if(!graphMode){
+      if(graphPreference==='off'||!(graphPreference==='on'||latest&&latest.sources&&latest.sources.length))return;
+      graphMode=true;mobileState();
+    }
+    var signature=state.session_id+':'+(latest?latest.id+':'+latest.status:'empty');
+    if(!force&&signature===graphSignature)return;
+    graphSignature=signature;var ticket=++graphRequest,sessionId=state.session_id;
+    try{
+      var graph=await api('chat/graph'+(sessionId?'?session_id='+encodeURIComponent(sessionId):'')+(turnId?'&turn_id='+encodeURIComponent(turnId):''));
+      if(ticket!==graphRequest||!opened||!graphMode||sessionId!==state.session_id)return;
+      var select=$('traceTurn');select.textContent='';
+      if(!graph.turns.length)select.add(new Option('Задайте вопрос в чате',''));
+      graph.turns.forEach(function(turn){select.add(new Option(turn.title,turn.id));});
+      if(graph.current_turn&&!graph.turns.some(function(turn){return turn.id===graph.current_turn;}))select.add(new Option('Предыдущий обмен из истории',graph.current_turn));
+      select.value=graph.current_turn||'';
+      $('chatGraphStatus').textContent=graph.current_turn?'Источники: '+graph.documents+' · нажмите узел для деталей':'Путь появится после первого запроса';
+      window.TracktorBrain.showTrace(graph,!force);
+      $('traceKnowledge').textContent='Все знания';
+    }catch(error){if(ticket===graphRequest&&opened){graphSignature='';$('chatGraphStatus').textContent=error.message;}}
+  }
+  function selectTrace(id){if(!opened){openTrace(id);return;}preferGraph(true);graphMode=true;mobileState();syncTrace(true,id);}
+  async function openTrace(id){if(!opened)await open();if(!opened)return;preferGraph(true);graphMode=true;mobileState();syncTrace(true,id);}
+  function closeTraceNode(){traceNode=null;$('traceModal').classList.add('hidden');if(traceFocus&&traceFocus.isConnected)traceFocus.focus();else if(opened)$('chatClose').focus();}
+  async function inspectNode(node){
+    traceNode=node;traceFocus=document.activeElement;$('traceModal').classList.remove('hidden');$('traceTitle').textContent='Читаю данные узла…';$('traceContent').textContent='';$('traceMeta').textContent='';$('traceOpenMaterial').hidden=true;$('traceClose').focus();
+    try{
+      if(node.type==='document'){
+        $('traceTitle').textContent=node.title;$('traceMeta').textContent='Фрагмент базы знаний · версия '+node.revision+' · снимок на момент запроса';$('traceContent').textContent=node.excerpt;$('traceOpenMaterial').hidden=false;return;
+      }
+      var turn=await api('chat/turns/'+encodeURIComponent(node.turn_id));if(traceNode!==node)return;
+      var statuses={running:'Выполняется',succeeded:'Ответ получен',partial:'Частичный ответ',failed:'Ошибка',interrupted:'Прервано'},phase=statuses[turn.status]||turn.status;
+      $('traceMeta').textContent='Модель: '+turn.model+' · '+new Date(turn.created_at).toLocaleString('ru-RU')+' · '+phase;
+      if(node.type==='query'){$('traceTitle').textContent='Что было запрошено';$('traceContent').textContent=turn.task+'\n\nМатериалы: '+(turn.sources||[]).map(function(source){return source.title+' (v'+source.revision+')';}).join(', ')+'\nОбменов из истории: '+(turn.context_turns?turn.context_turns.length:'состав не сохранён для этого запроса');}
+      else if(node.type==='model'){$('traceTitle').textContent='Куда направлен запрос';$('traceContent').textContent='Cloud.ru Foundation Models\nМодель: '+turn.model+'\nСтатус: '+phase+'\n\nПередаваемые данные: вопрос, системная инструкция, выбранная история и найденные фрагменты материалов.\n\n'+(turn.error||'')+(turn.usage&&turn.usage.total_tokens?'\nТокенов: '+turn.usage.total_tokens:'')+(turn.status==='failed'||turn.status==='interrupted'?'\n\nОбработка запроса облаком может быть не подтверждена.':'')+'\n\nПросмотр графа не отправляет запрос модели.';}
+      else{$('traceTitle').textContent='Что получено';$('traceContent').textContent=turn.result||turn.error||'Ответ ещё не получен.';}
+    }catch(error){if(traceNode===node){$('traceTitle').textContent='Данные недоступны';$('traceContent').textContent=error.message;}}
   }
   function article(role,text,detail){
     var item=document.createElement('article');item.className='assistant-message '+role;
@@ -104,10 +147,10 @@
           turn.sources.forEach(function(source,index){
             var button=document.createElement('button');button.type='button';button.textContent='['+(index+1)+'] '+source.title+' ↗';
             button.title='Показать материал и связанные метки на карте';
-            button.addEventListener('click',function(){close();window.TracktorKnowledge.showSources([source.id]);});details.appendChild(button);
+            button.addEventListener('click',function(){selectTrace(turn.id);});details.appendChild(button);
             var excerpt=document.createElement('p');excerpt.textContent=source.excerpt;details.appendChild(excerpt);
           });
-          var map=document.createElement('button');map.type='button';map.textContent='Все источники на карте';map.addEventListener('click',function(){close();window.TracktorKnowledge.showSources(turn.sources.map(function(source){return source.id;}));});details.appendChild(map);
+          var map=document.createElement('button');map.type='button';map.textContent='Все источники на карте';map.addEventListener('click',function(){selectTrace(turn.id);});details.appendChild(map);
           var note=document.createElement('small');note.textContent='Фрагменты сохранены на момент запроса. Связи на карте основаны на общих метках.';details.appendChild(note);reply.appendChild(details);
         }else if(turn.include_knowledge){var missing=document.createElement('small');missing.textContent='Поиск по базе не нашёл подходящих материалов.';reply.appendChild(missing);}
         list.appendChild(reply);
@@ -131,6 +174,7 @@
       }
       if(token!==generation||!opened)return;
       render();
+      syncTrace(false);
       var latest=state.turns[state.turns.length-1];
       if(pending)status('Отправка не подтверждена. Нажмите «Проверить отправку»: тот же идентификатор защищает от повторного запроса.',true);
       else if(state.active)status(state.active.session_id===state.session_id?'Модель отвечает. Оставьте окно BAT открытым.':'Модель отвечает в другом диалоге. Дождитесь завершения.');
@@ -157,12 +201,21 @@
   function close(){
     if(!opened)return;if(state.session_id&&!pending)drafts[state.session_id]=$('chatInput').value;
     opened=false;generation++;clearTimeout(timer);panel.classList.add('hidden');avatar.setAttribute('aria-expanded','false');mobileState();avatar.focus();
+    graphRequest++;graphMode=false;graphSignature='';mobileState();
   }
   $('chatClose').addEventListener('click',close);
   $('chatInput').addEventListener('input',controls);
   $('chatInput').addEventListener('keydown',function(event){if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();if(!$('chatSend').disabled)$('chatForm').requestSubmit();}});
   $('chatSettings').addEventListener('click',function(){close();window.TracktorCloudSettings.open();});
   $('chatMaterials').addEventListener('click',function(){close();window.TracktorKnowledge.open();});
+  $('chatGraphToggle').addEventListener('click',function(){if(graphMode){preferGraph(false);graphMode=false;graphRequest++;graphSignature='';mobileState();$('chatGraphStatus').textContent='Материалы → запрос → модель → ответ';}else openTrace();});
+  $('traceMode').addEventListener('click',function(){openTrace();});
+  $('traceTurn').addEventListener('change',function(){if(this.value)selectTrace(this.value);});
+  $('traceKnowledge').addEventListener('click',function(){if(this.textContent==='Путь запроса'){syncTrace(true,$('traceTurn').value);return;}graphRequest++;window.TracktorKnowledge.showSources([]);this.textContent='Путь запроса';$('chatGraphStatus').textContent='Карта материалов · вернитесь кнопкой «Путь запроса»';});
+  $('traceClose').addEventListener('click',closeTraceNode);
+  $('traceOpenMaterial').addEventListener('click',function(){var id=traceNode&&traceNode.id;closeTraceNode();if(id)window.TracktorKnowledge.open(id);});
+  $('traceModal').addEventListener('click',function(event){if(event.target===this)closeTraceNode();});
+  $('traceModal').addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Tab'){var items=Array.from($('traceDialog').querySelectorAll('button:not([hidden])')),first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
   $('chatRefresh').addEventListener('click',async function(){if(busy)return;busy=true;controls();await refresh(true);busy=false;controls();});
   async function switchSession(create){
     if(busy||posting||pending)return;busy=true;var token=++generation;clearTimeout(timer);controls();
@@ -191,5 +244,6 @@
       else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     }
   });
-  document.addEventListener('keydown',function(event){if(opened&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}},true);
+  document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(traceNode){event.preventDefault();event.stopImmediatePropagation();closeTraceNode();}else if(opened){event.preventDefault();event.stopImmediatePropagation();close();}},true);
+  window.TracktorAssistant={openTrace:openTrace,selectTrace:selectTrace,inspectNode:inspectNode};
 })();
