@@ -165,10 +165,11 @@ class ChatRunner:
                 raise cloudru.CloudError('Запрос принадлежит другому диалогу', 404)
         graph = {'trace': True, 'session_id': snapshot['session_id'], 'current_turn': selected['id'] if selected else None,
                  'turns': [{'id': turn['id'], 'title': turn['task'][:90], 'status': turn['status']} for turn in turns],
-                 'nodes': [], 'edges': [], 'documents': 0, 'context_recorded': False}
+                 'nodes': [], 'edges': [], 'documents': 0, 'context_recorded': False, 'phase': 'empty'}
         if selected is None:
             return graph
         turn_id = selected['id']
+        graph['phase'] = ('preparing' if selected['context_turns'] is None else 'waiting') if selected['status'] == 'running' else selected['status']
         names = {'running': 'Ожидание ответа', 'succeeded': 'Ответ получен', 'partial': 'Частичный ответ',
                  'failed': 'Ошибка запроса', 'interrupted': 'Запрос прерван'}
         graph['nodes'] = [

@@ -105,7 +105,18 @@
       <section class="brain-canvas">
         <div class="trace-workbar" id="traceWorkbar">
           <span>ПУТЬ ДАННЫХ</span><label class="assistant-sr" for="traceTurn">Запрос на графе</label><select id="traceTurn"><option value="">Запросов пока нет</option></select>
+          <button id="traceToolsToggle" type="button" aria-expanded="false" aria-controls="traceTools">Вид и поиск</button>
           <button id="traceKnowledge" type="button">Все знания</button>
+        </div>
+        <div class="trace-tools" id="traceTools" hidden>
+          <label class="assistant-sr" for="traceSearch">Найти узел графа</label><input id="traceSearch" type="search" placeholder="Найти узел · Enter" autocomplete="off" maxlength="200">
+          <button id="traceFitAll" type="button">Показать всё</button><button id="traceZoomSelected" type="button" disabled>Приблизить выбранное</button>
+          <button id="traceFocus" type="button" aria-pressed="false">Фокус на запросе</button><button id="traceClear" type="button" disabled>Снять выделение</button>
+          <span id="traceSelectionInfo" role="status" aria-live="polite">Выберите узел или стрелку</span>
+        </div>
+        <div class="trace-legend" id="traceLegend" hidden aria-label="Цвета связей">
+          <span class="legend-source">Материалы</span><span class="legend-history">История</span><span class="legend-request">Запрос</span><span class="legend-response">Ответ</span>
+          <strong id="tracePhase" role="status" aria-live="polite"></strong>
         </div>
         <div class="canvas-noise"></div>
         <div class="brain-loader hidden" id="brainLoader" aria-live="polite">
@@ -339,6 +350,7 @@
       <p class="dialog-kicker">ВТОРОЙ МОЗГ · ДАННЫЕ ЗАПРОСА</p><h2 id="traceTitle">Узел запроса</h2>
       <p class="dialog-note" id="traceMeta"></p><pre id="traceContent" class="trace-content"></pre>
       <button id="traceOpenMaterial" type="button" class="knowledge-manage" hidden>Открыть материал в базе знаний</button>
+      <button id="traceOpenHistory" type="button" class="knowledge-manage" hidden>Открыть путь этого запроса</button>
     </section>
   </div>
   <script src="database.js" defer></script>

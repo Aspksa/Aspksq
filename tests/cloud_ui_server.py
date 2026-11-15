@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import time
 import json
+import os
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import cloudru
 import server
@@ -23,7 +24,7 @@ def fake_provider(path, api_key, data=None, timeout=40):
     if api_key not in ('test-key-ui-valid','test-key-ui-reasoning'):
         raise cloudru.CloudError('Cloud.ru отклонил ключ. Укажите действующий Key Secret для Foundation Models.', 401)
     if data and len(data.get('messages',[])) > 1:
-        time.sleep(1)
+        time.sleep(float(os.environ.get('TRACKTOR_TEST_CHAT_DELAY','1')))
         prefix='Ответ помощника: ' if 'локальном приложении TRACKTOR' in data['messages'][0]['content'] else 'Результат навыка: '
         sources=[]
         if 'источники фактов:\n' in data['messages'][0]['content']:
