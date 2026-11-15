@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS chat_turns (
   task TEXT NOT NULL, model TEXT NOT NULL, max_tokens INTEGER NOT NULL,
   status TEXT NOT NULL CHECK(status IN ('running','succeeded','partial','failed','interrupted')),
   result TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', usage TEXT NOT NULL DEFAULT '{}',
+  include_knowledge INTEGER NOT NULL DEFAULT 0, sources TEXT NOT NULL DEFAULT '[]', context_turns TEXT,
   created_at TEXT NOT NULL, finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS chat_turns_session_idx ON chat_turns(session_id);

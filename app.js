@@ -62,19 +62,22 @@
   var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
   var databaseSkills = [], databaseClients = null, databaseProjects = null, databaseRoutines = null;
   var knowledgeData={nodes:[],edges:[],documents:0},knowledgeActive=false,knowledgeSelection=[];
-  function brainLabel(){return knowledgeActive?knowledgeData.documents+" МАТЕРИАЛОВ · "+knowledgeData.edges.length+" СВЯЗЕЙ ПО МЕТКАМ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";}
+  function brainLabel(){return knowledgeActive?(knowledgeData.trace?'ПУТЬ ЗАПРОСА · '+knowledgeData.documents+' ИСТОЧНИКОВ':knowledgeData.documents+" МАТЕРИАЛОВ · "+knowledgeData.edges.length+" СВЯЗЕЙ ПО МЕТКАМ"):"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";}
   function knowledgeModeUI(){
     $("knowledgeMode").classList.toggle("active",knowledgeActive);$("demoMode").classList.toggle("active",!knowledgeActive);
     $("knowledgeMode").setAttribute("aria-pressed",String(knowledgeActive));$("demoMode").setAttribute("aria-pressed",String(!knowledgeActive));
-    $("knowledgeMapStatus").textContent=knowledgeData.documents+" материалов · "+knowledgeData.edges.length+" связей по меткам. "+(knowledgeSelection.length?"Источники и соседние узлы выделены.":"Нажмите материал, чтобы прочитать или изменить.");
+    $("knowledgeMapStatus").textContent=knowledgeData.trace?'Материалы → запрос → модель → ответ. Нажмите узел для просмотра сохранённых данных.':knowledgeData.documents+" материалов · "+knowledgeData.edges.length+" связей по меткам. "+(knowledgeSelection.length?"Источники и соседние узлы выделены.":"Нажмите материал, чтобы прочитать или изменить.");
     $("fileSearch").placeholder=knowledgeActive?"Поиск названий и меток":"Поиск файлов ( / )";
     $("brainDataCount").textContent=brainLabel();
     $("viewButtons").closest('section').hidden=knowledgeActive;
     $("plaqueToggle").hidden=knowledgeActive;
+    $("layoutButtons").closest('section').hidden=Boolean(knowledgeActive&&knowledgeData.trace);
+    $("ringAngle").closest('section').hidden=Boolean(knowledgeActive&&knowledgeData.trace);
     if(state.page==="brain")$("systemLabel").textContent=brainLabel();
   }
   function renderKnowledge(group){
     knowledgeModeUI();
+    if(knowledgeData.trace){renderTrace(group,knowledgeData);return;}
     var data=knowledgeData,nodes=data.nodes,coords={},related=new Set(knowledgeSelection),selected=new Set(knowledgeSelection);
     data.edges.forEach(function(edge){if(selected.has(edge.source))related.add(edge.target);if(selected.has(edge.target))related.add(edge.source);});
     data.edges.forEach(function(edge){if(related.has(edge.target))related.add(edge.source);});
@@ -113,6 +116,54 @@
       item.addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Enter'||event.key===' '){event.preventDefault();activate();}});
     });
     $("canvasHint").textContent='БАЗА ЗНАНИЙ · МАТЕРИАЛ — ОТКРЫТЬ · МЕТКА — ПОКАЗАТЬ СВЯЗИ · ESC — СНЯТЬ ВЫДЕЛЕНИЕ';
+  }
+  function renderTrace(group,data){
+    var mobile=window.innerWidth<=1000,coords={},sources=data.nodes.filter(function(node){return node.type==='document';}),history=data.nodes.filter(function(node){return node.type==='history';});
+    var marker=svg('marker',{id:'traceArrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'},svg('defs',{},group));
+    svg('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:accent(0)},marker);
+    if(!data.nodes.length){drawText(group,550,420,'ЗАДАЙТЕ ВОПРОС В ЧАТЕ',accent(0),mobile?36:24);drawText(group,550,475,'Здесь появится путь запроса и его источники','#89a7b4',mobile?24:16);return;}
+    data.nodes.forEach(function(node){
+      if(node.type==='document'){var i=sources.indexOf(node);coords[node.id]=mobile?{x:30,y:100+i*76,w:450,h:66}:{x:25,y:135+i*83,w:235,h:68};}
+      if(node.type==='query')coords[node.id]=mobile?{x:570,y:180,w:490,h:240}:{x:325,y:300,w:230,h:195};
+      if(node.type==='model')coords[node.id]=mobile?{x:570,y:635,w:490,h:205}:{x:625,y:310,w:180,h:175};
+      if(node.type==='answer')coords[node.id]=mobile?{x:30,y:635,w:450,h:205}:{x:870,y:300,w:210,h:225};
+      if(node.type==='history'&&!mobile){var i=history.indexOf(node);coords[node.id]={x:25+(i%6)*175,y:680+Math.floor(i/6)*92,w:155,h:70};}
+    });
+    data.edges.forEach(function(edge){
+      var a=coords[edge.source],b=coords[edge.target];if(!a||!b)return;
+      var start=[a.x+a.w,a.y+a.h/2],end=[b.x,b.y+b.h/2];
+      if(edge.kind==='history'){start=[a.x+a.w/2,a.y];end=[b.x+b.w/2,b.y+b.h];}
+      else if(mobile&&edge.kind==='request'){start=[a.x+a.w/2,a.y+a.h];end=[b.x+b.w/2,b.y];}
+      else if(mobile&&edge.kind==='response'){start=[a.x,a.y+a.h/2];end=[b.x+b.w,b.y+b.h/2];}
+      var middle=(start[0]+end[0])/2,path='M '+start.join(' ')+' C '+middle+' '+start[1]+' '+middle+' '+end[1]+' '+end.join(' ');
+      if(edge.kind==='history'||mobile&&edge.kind==='request'){var midY=(start[1]+end[1])/2;path='M '+start.join(' ')+' C '+start[0]+' '+midY+' '+end[0]+' '+midY+' '+end.join(' ');}
+      svg('path',{d:path,fill:'none',stroke:edge.kind==='history'?'#8a8cce':accent(0),'stroke-width':edge.kind==='history'?1.3:2.1,opacity:edge.kind==='history'?.45:.7,'stroke-dasharray':edge.kind==='history'?'6 5':null,'marker-end':'url(#traceArrow)','data-trace-edge':edge.kind},group);
+      if(edge.kind!=='history')drawText(group,middle,(start[1]+end[1])/2-10,{source:'Контекст',request:'Запрос',response:'Результат'}[edge.kind]||edge.label,'#8fb9bc',mobile?(edge.kind==='source'?18:23):9);
+    });
+    function lines(text,length,count){var output=[],remaining=String(text||'').replace(/\s+/g,' ');while(remaining&&output.length<count){var cut=remaining.length>length?remaining.lastIndexOf(' ',length):remaining.length;if(cut<length/2)cut=Math.min(length,remaining.length);output.push(remaining.slice(0,cut));remaining=remaining.slice(cut).trim();}if(remaining&&output.length)output[output.length-1]+='…';return output;}
+    data.nodes.forEach(function(node){
+      var p=coords[node.id];if(!p)return;
+      var source=node.type==='document',pending=node.type==='model'&&node.status==='running';
+      var item=svg('g',{class:'trace-node'+(source?' knowledge-node is-source':'')+(pending?' is-running':''),tabindex:0,role:'button','data-trace-node':node.type,'data-document-id':source?node.id:null,'data-knowledge-id':node.id,'aria-label':node.title},group);
+      svg('title',{},item,node.title);svg('rect',{x:p.x,y:p.y,width:p.w,height:p.h,rx:14,fill:source?'#12342f':'#102330',stroke:source?accent(0):node.type==='history'?'#646487':'#31545e','stroke-width':source?2:1.4},item);
+      var font=mobile?28:14;
+      if(source){drawText(item,p.x+14,p.y+(mobile?28:26),'['+node.number+'] '+node.title.slice(0,mobile?22:25),'#c4e9de',mobile?28:12,'start');drawText(item,p.x+14,p.y+p.h-13,'Снимок · версия '+node.revision,'#78a89e',mobile?21:10,'start');}
+      else if(node.type==='history'){drawText(item,p.x+10,p.y+20,'ИСТОРИЯ','#a4a0d1',9,'start');lines(node.title,21,2).forEach(function(line,i){drawText(item,p.x+10,p.y+39+i*14,line,'#b1c8d0',10,'start');});}
+      else{
+        var heading={query:'ВАШ ЗАПРОС',model:'CLOUD.RU',answer:'РЕЗУЛЬТАТ'}[node.type];
+        drawText(item,p.x+16,p.y+(mobile?36:30),heading,accent(0),mobile?26:12,'start');
+        lines(node.title,mobile?25:node.type==='model'?20:25,3).forEach(function(line,i){drawText(item,p.x+16,p.y+(mobile?82:65)+i*(mobile?35:22),line,'#d6e8e9',font,'start');});
+        if(node.type==='query')drawText(item,p.x+16,p.y+p.h-20,'Источники: '+sources.length+' · история: '+(data.context_recorded?history.length:'не сохранена'),'#81a4b2',mobile?23:11,'start');
+        if(node.type==='model')drawText(item,p.x+16,p.y+p.h-20,node.status==='running'?'Выполняется…':'Нажмите для деталей','#81a4b2',mobile?23:10,'start');
+        if(node.type==='answer')lines(node.preview||'Текст пока не получен',mobile?26:28,2).forEach(function(line,i){drawText(item,p.x+16,p.y+p.h-(mobile?53:55)+i*(mobile?29:19),line,'#93b6bf',mobile?23:11,'start');});
+      }
+      function activate(){if(window.TracktorAssistant){if(node.type==='history')window.TracktorAssistant.selectTrace(node.turn_id);else window.TracktorAssistant.inspectNode(node);}}
+      item.addEventListener('click',function(event){event.stopPropagation();if(!dragged)activate();});item.addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Enter'||event.key===' '){event.preventDefault();activate();}});
+    });
+    if(!sources.length)drawText(group,mobile?255:142,mobile?300:300,'Без материалов базы','#7897a4',mobile?25:13);
+    if(history.length&&!mobile)drawText(group,25,655,'СОХРАНЁННЫЕ ОБМЕНЫ, ВКЛЮЧЁННЫЕ В КОНТЕКСТ','#8b8cba',11,'start');
+    if(mobile&&history.length)drawText(group,45,590,'В контексте '+history.length+' обменов из истории','#a3a2c7',25,'start');
+    $("canvasHint").textContent='ПУТЬ ДАННЫХ · СТРЕЛКИ — НАПРАВЛЕНИЕ · УЗЕЛ — СОХРАНЁННЫЕ ДАННЫЕ · МАСШТАБ — КОЛЕСО / ДВА ПАЛЬЦА';
   }
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
@@ -1117,7 +1168,9 @@
         drag={x:e.clientX,y:e.clientY,startX:state.panX,startY:state.panY};
         dragged=false;
       }
-      e.currentTarget.setPointerCapture(e.pointerId);
+      // Capturing a simple node tap here retargets its click to the canvas.
+      // Keep node taps intact; capture only once the gesture becomes a drag.
+      if(!e.target.closest('.knowledge-node,.trace-node,.group-node,.file-node'))e.currentTarget.setPointerCapture(e.pointerId);
       e.currentTarget.classList.add("dragging");
     });
     $("brainSvg").addEventListener("pointermove",function(e){
@@ -1134,7 +1187,7 @@
       }
       if(!drag)return;
       var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-      if(Math.abs(dx)+Math.abs(dy)>6)dragged=true;
+      if(Math.abs(dx)+Math.abs(dy)>6){dragged=true;if(!this.hasPointerCapture(e.pointerId))this.setPointerCapture(e.pointerId);}
       var rect=this.getBoundingClientRect();
       var unit=Math.min(rect.width/1100,rect.height/920);
       state.panX=drag.startX+dx/unit;
@@ -1219,11 +1272,15 @@
     $("plaqueToggle").setAttribute("aria-pressed",String(state.plaque));
   }
   window.TracktorBrain={
-    updateKnowledge:function(data){knowledgeData=data;knowledgeModeUI();if(knowledgeActive)renderBrain();},
+    updateKnowledge:function(data){if(knowledgeActive&&knowledgeData.trace)return;knowledgeData=data;knowledgeModeUI();if(knowledgeActive)renderBrain();},
+    isTrace:function(){return knowledgeActive&&Boolean(knowledgeData.trace);},
     showKnowledge:function(data,ids,stay){knowledgeData=data;knowledgeSelection=ids||[];knowledgeActive=true;knowledgeModeUI();if(!stay){resetPosition();openBrain();}else renderBrain();},
+    showTrace:function(data,preserve){knowledgeData=data;knowledgeSelection=[];knowledgeActive=true;knowledgeModeUI();if(!preserve||state.page!=='brain'){resetPosition();openBrain();}else renderBrain();},
     showDemo:function(){knowledgeActive=false;knowledgeSelection=[];knowledgeModeUI();openBrain();}
   };
   $("demoMode").addEventListener('click',window.TracktorBrain.showDemo);
+  var traceResizeFrame=null;
+  window.addEventListener('resize',function(){if(knowledgeActive&&knowledgeData.trace){cancelAnimationFrame(traceResizeFrame);traceResizeFrame=requestAnimationFrame(function(){renderBrain();});}});
   readSaved();renderHeaderIcons();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
   window.TracktorDB.init().then(function(){updateDatabaseUI();if(window.TracktorDB.isReady())return syncDatabaseData();})
     .catch(function(error){updateDatabaseUI();notify("Ошибка подключения к базе: "+error.message);});

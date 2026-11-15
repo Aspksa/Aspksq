@@ -129,7 +129,7 @@ class ChatRunner:
     def messages(self, turn):
         # Keep complete exchanges, bounded by both count and characters; never include another dialog or failed replies.
         with closing(self.connect(self.database)) as connection:
-            rows = connection.execute("SELECT task,result FROM chat_turns WHERE session_id=? AND status IN ('succeeded','partial') "
+            rows = connection.execute("SELECT id,task,result FROM chat_turns WHERE session_id=? AND status IN ('succeeded','partial') "
                                       "AND rowid < (SELECT rowid FROM chat_turns WHERE id=?) ORDER BY rowid DESC LIMIT 12",
                                       (turn['session_id'], turn['id'])).fetchall()
         history, size = [], 0
@@ -138,6 +138,11 @@ class ChatRunner:
             if size > 24000:
                 break
             history.append(row)
+        # Record the exact exchanges used, before the provider call. Older turns
+        # retain NULL: their context must not be reconstructed or invented.
+        with closing(self.connect(self.database)) as connection, connection:
+            connection.execute("UPDATE chat_turns SET context_turns=? WHERE id=? AND status='running'",
+                               (json.dumps([row['id'] for row in reversed(history)]), turn['id']))
         context = '\n\nМатериалы базы знаний не приложены.'
         if turn['include_knowledge']:
             context = '\n\nПоиск по базе не нашёл подходящих материалов. Не выдумывай сведения из базы.'
@@ -148,6 +153,48 @@ class ChatRunner:
         for row in reversed(history):
             messages.extend([{'role': 'user', 'content': row['task']}, {'role': 'assistant', 'content': row['result']}])
         return messages + [{'role': 'user', 'content': turn['task']}]
+
+    def graph(self, session_id=None, turn_id=None):
+        snapshot = self.snapshot(session_id)
+        turns = snapshot['turns']
+        selected = next((turn for turn in turns if turn['id'] == turn_id), None) if turn_id else (turns[-1] if turns else None)
+        if turn_id and selected is None:
+            # A history node may refer to a turn outside the 100-row chat window.
+            selected = self.get(turn_id)
+            if selected['session_id'] != snapshot['session_id']:
+                raise cloudru.CloudError('Запрос принадлежит другому диалогу', 404)
+        graph = {'trace': True, 'session_id': snapshot['session_id'], 'current_turn': selected['id'] if selected else None,
+                 'turns': [{'id': turn['id'], 'title': turn['task'][:90], 'status': turn['status']} for turn in turns],
+                 'nodes': [], 'edges': [], 'documents': 0, 'context_recorded': False}
+        if selected is None:
+            return graph
+        turn_id = selected['id']
+        names = {'running': 'Ожидание ответа', 'succeeded': 'Ответ получен', 'partial': 'Частичный ответ',
+                 'failed': 'Ошибка запроса', 'interrupted': 'Запрос прерван'}
+        graph['nodes'] = [
+            {'id': 'query:'+turn_id, 'type': 'query', 'title': selected['task'][:100], 'turn_id': turn_id},
+            {'id': 'model:'+turn_id, 'type': 'model', 'title': selected['model'], 'turn_id': turn_id, 'status': selected['status']},
+            {'id': 'answer:'+turn_id, 'type': 'answer', 'title': names[selected['status']], 'preview': selected['result'][:140],
+             'turn_id': turn_id, 'status': selected['status'], 'usage': selected['usage']}]
+        graph['edges'] = [
+            {'source': 'query:'+turn_id, 'target': 'model:'+turn_id, 'kind': 'request', 'label': 'Запрос + контекст'},
+            {'source': 'model:'+turn_id, 'target': 'answer:'+turn_id, 'kind': 'response',
+             'label': 'Ответ' if selected['status'] in ('succeeded', 'partial') else names[selected['status']]}]
+        for index, source in enumerate(selected['sources']):
+            graph['nodes'].append(dict(source, type='document', turn_id=turn_id, number=index+1))
+            graph['edges'].append({'source': source['id'], 'target': 'query:'+turn_id, 'kind': 'source',
+                                   'label': 'Фрагмент v'+str(source['revision'])})
+        graph['documents'] = len(selected['sources'])
+        graph['context_recorded'] = selected['context_turns'] is not None
+        with closing(self.connect(self.database)) as connection:
+            for history_id in selected['context_turns'] or []:
+                row = connection.execute('SELECT id,session_id,task FROM chat_turns WHERE id=?', (history_id,)).fetchone()
+                if row is None or row['session_id'] != selected['session_id']:
+                    continue
+                graph['nodes'].append({'id': 'history:'+history_id, 'type': 'history', 'title': row['task'][:80], 'turn_id': history_id})
+                graph['edges'].append({'source': 'history:'+history_id, 'target': 'query:'+turn_id,
+                                       'kind': 'history', 'label': 'Обмен из истории'})
+        return graph
 
     def finish(self, turn_id, status, result='', error='', usage=None):
         with closing(self.connect(self.database)) as connection, connection:

@@ -30,7 +30,8 @@ const required = [
   'plaqueToggle','hudToggle','ringAngle','ringForce','mapSize','fileNames','themeList',
   'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch',
   'assistantAvatar','assistantChat','chatForm','chatInput','chatSession','chatSend',
-  'chatKnowledge','chatMaterials','knowledgeModal','knowledgeBody','knowledgeMode','demoMode'
+  'chatKnowledge','chatMaterials','knowledgeModal','knowledgeBody','knowledgeMode','demoMode',
+  'chatGraphToggle','traceTurn','traceModal','traceContent','traceMode'
 ];
 for(const id of required)assert.ok(ids.has(id), 'Отсутствует элемент '+id);
 
