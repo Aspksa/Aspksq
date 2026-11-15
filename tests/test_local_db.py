@@ -90,7 +90,7 @@ class LocalDatabaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary) / "Русский путь (скобки) & ! 100% О'Брайен [тест]"
             project.mkdir()
-            for name in ("server.py", "cloudru.py", "skillrunner.py", "chatrunner.py", "seed-data.json", "sqlite-schema.sql", "index.html"):
+            for name in ("server.py", "cloudru.py", "skillrunner.py", "chatrunner.py", "knowledge.py", "seed-data.json", "sqlite-schema.sql", "index.html"):
                 shutil.copyfile(ROOT / name, project / name)
             database = project / "tracktor.sqlite3"
             with running(database, root=project) as port:

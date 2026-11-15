@@ -60,7 +60,7 @@ try {
 
     $project = Join-Path $temporary "Русский путь (скобки) & ! 100% О'Брайен [тест]"
     [IO.Directory]::CreateDirectory($project) | Out-Null
-    foreach ($name in @('Aspksa.bat','Start-Tracktor.ps1','server.py','cloudru.py','cloud.js','skillrunner.py','skills.js','chatrunner.py','assistant.js','sqlite-schema.sql','seed-data.json','index.html','app.js','database.js','styles.css')) {
+    foreach ($name in @('Aspksa.bat','Start-Tracktor.ps1','server.py','cloudru.py','cloud.js','skillrunner.py','skills.js','chatrunner.py','assistant.js','knowledge.py','knowledge.js','sqlite-schema.sql','seed-data.json','index.html','app.js','database.js','styles.css')) {
         [IO.File]::Copy((Join-Path $root $name), (Join-Path $project $name))
     }
     $env:TRACKTOR_NO_BROWSER = '1'

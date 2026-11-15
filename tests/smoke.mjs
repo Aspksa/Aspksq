@@ -12,6 +12,8 @@ const schema = readFileSync(new URL('../sqlite-schema.sql', import.meta.url), 'u
 new Script(js, { filename: 'app.js' });
 new Script(db, { filename: 'database.js' });
 new Script(readFileSync(new URL('../assistant.js', import.meta.url), 'utf8'), { filename: 'assistant.js' });
+new Script(readFileSync(new URL('../knowledge.js', import.meta.url), 'utf8'), { filename: 'knowledge.js' });
+assert.doesNotMatch(html, /id="chatLimit"/, 'В чате нет ручного лимита ответа');
 assert.doesNotMatch(html, /supabase|cdn\.jsdelivr/i, 'Локальная версия не требует облачного SDK');
 assert.match(html, /<html lang="ru">/, 'Русская локализация документа');
 assert.match(html, /<script src="database\.js" defer><\/script>/);
@@ -27,7 +29,8 @@ const required = [
   'mapViewport','mapTooltip','brainLoader','layoutButtons','viewButtons','fileSearch',
   'plaqueToggle','hudToggle','ringAngle','ringForce','mapSize','fileNames','themeList',
   'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch',
-  'assistantAvatar','assistantChat','chatForm','chatInput','chatSession','chatSend'
+  'assistantAvatar','assistantChat','chatForm','chatInput','chatSession','chatSend',
+  'chatKnowledge','chatMaterials','knowledgeModal','knowledgeBody','knowledgeMode','demoMode'
 ];
 for(const id of required)assert.ok(ids.has(id), 'Отсутствует элемент '+id);
 

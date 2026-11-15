@@ -46,6 +46,8 @@ def public_run(row):
         return None
     result = dict(row)
     result["usage"] = json.loads(result["usage"])
+    if 'sources' in result:
+        result['sources'] = json.loads(result['sources'])
     return result
 
 

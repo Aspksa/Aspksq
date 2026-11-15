@@ -120,6 +120,12 @@
         </div>
       </section>
       <aside class="brain-settings" id="brainSettings">
+        <section class="control-section knowledge-controls">
+          <h2>БАЗА ЗНАНИЙ</h2>
+          <div class="segmented"><button type="button" id="knowledgeMode">Мои знания</button><button type="button" id="demoMode" class="active">Демонстрация</button></div>
+          <button type="button" id="knowledgeManage" class="knowledge-manage">＋ Добавить материал</button>
+          <p id="knowledgeMapStatus" class="dialog-note">Личные материалы и связи по меткам.</p>
+        </section>
         <div class="search-wrap">
           <input id="fileSearch" type="search" placeholder="Поиск файлов ( / )" aria-label="Поиск файлов" autocomplete="off">
           <kbd>/</kbd>
@@ -166,7 +172,7 @@
           <h2>ТЕМА</h2>
           <div class="theme-list" id="themeList"></div>
         </section>
-        <footer class="settings-footer"><span class="status-dot"></span> 2209 ФАЙЛОВ · 137 ПРОЦЕССОВ <span>v 1.0</span></footer>
+        <footer class="settings-footer"><span class="status-dot"></span> <span id="brainDataCount">2209 ФАЙЛОВ · 137 ПРОЦЕССОВ</span> <span>v 1.0</span></footer>
       </aside>
     </main>
     <div class="client-modal hidden" id="clientModal" role="dialog" aria-modal="true" aria-labelledby="clientModalTitle">
@@ -277,6 +283,24 @@
     <svg viewBox="0 0 64 64" aria-hidden="true"><path class="avatar-orbit" d="M12 23C4 43 37 63 53 43S38 1 18 16"/><path class="avatar-antenna" d="M32 17V10"/><circle class="avatar-light" cx="32" cy="8" r="3"/><rect class="avatar-face" x="13" y="18" width="38" height="31" rx="13"/><rect class="avatar-screen" x="19" y="24" width="26" height="17" rx="7"/><path class="avatar-eyes" d="M25 31v3m14-3v3"/><path class="avatar-smile" d="M28 44h8"/></svg>
     <span class="assistant-badge" aria-hidden="true"></span>
   </button>
+  <div class="client-modal hidden" id="knowledgeModal" role="dialog" aria-modal="true" aria-labelledby="knowledgeTitle">
+    <section class="client-dialog knowledge-dialog" id="knowledgeDialog">
+      <button class="client-close" id="knowledgeClose" type="button" aria-label="Закрыть базу знаний">×</button>
+      <p class="dialog-kicker">ВТОРОЙ МОЗГ · ЛОКАЛЬНАЯ БАЗА</p>
+      <h2 id="knowledgeTitle">Материалы для помощника</h2>
+      <p class="dialog-note">Добавляйте факты, инструкции и заметки. В чат Cloud.ru попадут найденные фрагменты, если включено «По моей базе знаний». Общие метки создают связи на карте.</p>
+      <div class="knowledge-workspace">
+        <aside class="knowledge-library"><button id="knowledgeNew" type="button">＋ Новый материал</button><div id="knowledgeList"></div></aside>
+        <form id="knowledgeForm" class="knowledge-editor cloud-fields">
+          <label for="knowledgeName">Название</label><input id="knowledgeName" maxlength="200" required placeholder="Например: условия проекта Альфа">
+          <label for="knowledgeTags">Метки через запятую</label><input id="knowledgeTags" maxlength="600" placeholder="альфа, договоры, сроки">
+          <label for="knowledgeBody">Текст материала</label><textarea id="knowledgeBody" rows="10" maxlength="16000" required placeholder="Вставьте проверенные сведения, по которым помощник будет отвечать."></textarea>
+          <div class="auth-actions"><button id="knowledgeSave" type="submit">Сохранить материал</button><button id="knowledgeShowMap" type="button">На карту</button></div>
+          <p class="dialog-note" id="knowledgeFeedback" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </div>
   <span id="assistantDragHint" class="assistant-sr">Перетаскивайте мышью или пальцем. С клавиатуры: стрелки — переместить, Home — вернуть в угол, Enter — открыть чат.</span>
   <section class="assistant-chat hidden" id="assistantChat" role="dialog" aria-labelledby="assistantTitle" aria-modal="false">
     <header class="assistant-header">
@@ -289,23 +313,25 @@
       <button id="chatNew" type="button" title="Начать новый диалог">＋ Новый</button>
     </div>
     <div class="assistant-model"><span id="chatModel">Проверяю модель…</span><button id="chatSettings" type="button">Настроить</button></div>
+    <div class="assistant-knowledge"><label><input id="chatKnowledge" type="checkbox" checked> По моей базе знаний</label><button id="chatMaterials" type="button">Материалы</button></div>
     <div id="chatMessages" class="assistant-messages" aria-label="Сообщения диалога" tabindex="0"></div>
     <p id="chatStatus" class="assistant-status" role="status" aria-live="polite"></p>
     <form id="chatForm" class="assistant-composer">
       <label class="assistant-sr" for="chatInput">Сообщение помощнику</label>
       <textarea id="chatInput" rows="3" maxlength="10000" placeholder="Спросите или опишите задачу…"></textarea>
       <div class="assistant-send-row">
-        <label for="chatLimit">Лимит <select id="chatLimit"><option value="1024">1024</option><option value="2048" selected>2048</option><option value="4096">4096</option><option value="8192">8192</option></select></label>
+        <span class="assistant-auto">Без ручного лимита ответа</span>
         <button id="chatRefresh" type="button" aria-label="Обновить состояние чата" title="Обновить состояние">↻</button>
         <button id="chatSend" type="submit">Отправить ↑</button>
       </div>
-      <p class="assistant-note">Cloud.ru · запросы расходуют токены. История — в локальной базе. Передаются ваши сообщения, без автоматического доступа к проекту.</p>
+      <p class="assistant-note">Cloud.ru · запросы расходуют токены. При включённой базе передаются найденные фрагменты материалов. История сохраняется локально.</p>
     </form>
   </section>
   <script src="database.js" defer></script>
   <script src="app.js" defer></script>
   <script src="cloud.js" defer></script>
   <script src="skills.js" defer></script>
+  <script src="knowledge.js" defer></script>
   <script src="assistant.js" defer></script>
 </body>
 </html>
