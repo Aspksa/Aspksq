@@ -2,9 +2,9 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var settings = {has_key:false, model:'', verified_at:null}, catalog = [], busy = false, previousFocus = null;
+  var settings = {has_key:false, model:'', verified_at:null}, catalog = [], catalogLoaded = false, busy = false, previousFocus = null;
   async function api(path, data) {
-    var options = {cache:'no-store', signal:AbortSignal.timeout(55000)};
+    var options = {cache:'no-store', signal:AbortSignal.timeout(path==='test'?90000:55000)};
     if (data !== undefined) { options.method='POST'; options.headers={'Content-Type':'application/json'}; options.body=JSON.stringify(data); }
     try {
       var response = await fetch('/api/cloud/'+path, options);
@@ -12,7 +12,7 @@
       if (!response.ok) throw new Error(value.error || 'Ошибка подключения Cloud.ru');
       return value;
     } catch (error) {
-      if (error.name === 'TimeoutError') throw new Error('Проверка затянулась. Подождите и повторите её.');
+      if (error.name === 'TimeoutError') throw new Error('Проверка затянулась. Откройте окно снова и проверьте дату последней успешной проверки. Новый запрос автоматически не отправляется.');
       if (error.name === 'TypeError' || error.name === 'SyntaxError') throw new Error('Локальный сервер недоступен. Запустите Aspksa.bat.');
       throw error;
     }
@@ -23,11 +23,12 @@
   }
   function setBusy(value) {
     busy=value;
-    ['cloudKey','cloudSaveKey','cloudRefresh','cloudModel','cloudSaveModel','cloudVerify','cloudRemove'].forEach(function(id){$(id).disabled=value;});
+    ['cloudKey','cloudSaveKey','cloudRefresh','cloudModel','cloudTestLimit','cloudSaveModel','cloudVerify','cloudRemove'].forEach(function(id){$(id).disabled=value;});
     if (!value) {
       $('cloudRefresh').disabled=!settings.has_key;
-      $('cloudSaveModel').disabled=!settings.has_key;
-      $('cloudVerify').disabled=!settings.has_key;
+      var validModel=Boolean($('cloudModel').value)&&(!catalogLoaded||catalog.some(function(model){return model.id===$('cloudModel').value;}));
+      $('cloudSaveModel').disabled=!settings.has_key||!validModel;
+      $('cloudVerify').disabled=!settings.has_key||!validModel;
       $('cloudRemove').disabled=!settings.has_key && !settings.model;
     }
     $('cloudDialog').setAttribute('aria-busy', String(value));
@@ -50,10 +51,23 @@
       select.add(new Option(settings.model+' (сохранённая модель)', settings.model));
     }
     select.value=settings.model || '';
+    modelInfo();
   }
+  function modelInfo(){
+    var selected=$('cloudModel').value,model=catalog.find(function(item){return item.id===selected;});
+    if(!selected){$('cloudModelInfo').textContent='Выберите модель для текстовой задачи.';return;}
+    if(!model){$('cloudModelInfo').textContent=catalogLoaded?'Сохранённая модель отсутствует в текстовом каталоге. Выберите другую модель.':'Характеристики сохранённой модели ещё не загружены.';return;}
+    var parts=[];
+    if(model.context_length)parts.push('Контекст: '+model.context_length.toLocaleString('ru-RU')+' токенов');
+    if(model.provider==='external')parts.push('Внешняя модель через Cloud.ru');
+    else if(model.provider==='cloud.ru')parts.push('Модель в инфраструктуре Cloud.ru');
+    if(model.reasoning)parts.push('Режим рассуждений: короткого лимита проверки может не хватить');
+    $('cloudModelInfo').textContent=parts.join('. ');
+  }
+  $('cloudModel').addEventListener('change',function(){modelInfo();setBusy(busy);});
   async function loadModels() {
     var response=await api('models');
-    catalog=response.data;
+    catalog=response.data;catalogLoaded=true;
     renderModels();
     feedback(catalog.length?'Список обновлён: '+catalog.length+' моделей. Выберите модель ниже.':'Cloud.ru не вернул текстовых моделей.');
   }
@@ -81,6 +95,7 @@
     if(busy)return;
     run(async function(){
       feedback('Читаю сохранённые настройки…');
+      catalog=[];catalogLoaded=false;
       applySettings(await api('settings'));
       $('cloudReply').textContent='';
       if(settings.has_key)await loadModels();
@@ -101,6 +116,7 @@
       var key=$('cloudKey').value.trim();
       if(!key)throw new Error('Вставьте Key Secret. Сохранённый ключ менять не нужно.');
       feedback('Сохраняю ключ в локальной базе…');
+      catalog=[];catalogLoaded=false;
       applySettings(await api('settings',{api_key:key}));
       $('cloudKey').value='';
       await loadModels();
@@ -111,6 +127,7 @@
     if($('cloudKey').value.trim())throw new Error('Сначала сохраните введённый ключ.');
     var model=$('cloudModel').value;
     if(!model)throw new Error('Выберите модель из списка.');
+    if(catalogLoaded&&!catalog.some(function(item){return item.id===model;}))throw new Error('Выберите поддерживаемую текстовую модель из обновлённого списка.');
     applySettings(await api('settings',{model:model}));
   }
   $('cloudSaveModel').addEventListener('click',function(){run(async function(){await saveModel();feedback('Модель сохранена. Можно проверить подключение.');});});
@@ -120,10 +137,10 @@
       $('cloudReply').textContent='';
       feedback('Отправляю короткий проверочный запрос в Cloud.ru…');
       try {
-        var result=await api('test',{});
+        var result=await api('test',{max_tokens:Number($('cloudTestLimit').value)});
         applySettings({has_key:true,model:result.model,verified_at:result.verified_at});
         $('cloudReply').textContent=result.reply || '';
-        feedback(result.message);
+        feedback(result.message,!result.verified_at);
       } catch(error) {
         try { applySettings(await api('settings')); } catch(ignored) {}
         throw error;
@@ -133,7 +150,7 @@
   $('cloudRemove').addEventListener('click',function(){
     run(async function(){
       applySettings(await api('settings',{remove_key:true}));
-      catalog=[];renderModels();$('cloudKey').value='';$('cloudReply').textContent='';
+      catalog=[];catalogLoaded=false;renderModels();$('cloudKey').value='';$('cloudReply').textContent='';
       feedback('Сохранённый ключ и выбор модели удалены из приложения.');
     });
   });

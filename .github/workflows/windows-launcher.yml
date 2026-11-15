@@ -12,6 +12,8 @@ on:
       - 'skills.js'
       - 'cloud.js'
       - 'tests/test_local_db.py'
+      - 'tests/test_cloudru.py'
+      - 'tests/test_cloudru_transport.py'
       - 'tests/test_skill_runs.py'
       - 'tests/windows-launcher.ps1'
       - 'tests/windows-portable.ps1'

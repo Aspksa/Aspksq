@@ -100,7 +100,10 @@ async function exerciseSkill(page,site,width){
       assert.equal(await page.locator('#cloudKey').inputValue(),'');
       assert.equal(await page.locator('#cloudModal img').count(),0,'Provider names must be plain text');
       assert.equal((await (await page.request.get(site+'api/cloud/settings')).json()).verified_at,null,'Catalog must not authenticate the key');
+      await page.locator('#cloudModel').selectOption('test/model-two');
+      assert((await page.locator('#cloudModelInfo').innerText()).includes('Режим рассуждений'));
       await page.locator('#cloudModel').selectOption('test/model-one');
+      assert((await page.locator('#cloudModelInfo').innerText()).includes('32'));
       await page.locator('#cloudSaveModel').click();
       await page.waitForFunction(()=>document.querySelector('#cloudFeedback').textContent.includes('Модель сохранена'));
       await page.reload();
@@ -117,6 +120,20 @@ async function exerciseSkill(page,site,width){
       const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage}}));
       assert(!storage.includes('test-key-ui-valid'),'Key must not enter browser storage');
       assert(!(await page.content()).includes('test-key-ui-valid'),'Key must not be in rendered HTML');
+      await page.locator('#cloudKey').fill('test-key-ui-reasoning');
+      await page.locator('#cloudSaveKey').click();
+      await page.waitForFunction(()=>!document.querySelector('#cloudVerify').disabled);
+      await page.locator('#cloudTestLimit').selectOption('128');
+      await page.locator('#cloudVerify').click();
+      await page.waitForFunction(()=>document.querySelector('#cloudFeedback').textContent.includes('без итогового текста'));
+      assert(!(await page.locator('#cloudButton').getAttribute('class')).includes('cloud-verified'),'Reasoning-only reply must not be marked verified');
+      assert.equal((await (await page.request.get(site+'api/cloud/settings')).json()).verified_at,null);
+      await page.locator('#cloudTestLimit').selectOption('512');
+      await page.locator('#cloudVerify').click();
+      await page.waitForFunction(()=>document.querySelector('#cloudReply').textContent.includes('Работает'));
+      await page.locator('#cloudKey').fill('test-key-ui-valid');
+      await page.locator('#cloudSaveKey').click();
+      await page.waitForFunction(()=>!document.querySelector('#cloudVerify').disabled);
       await exerciseSkill(page,site,width);
       // Public catalog still loads with an invalid key; only inference rejects it.
       await page.locator('#cloudKey').fill('test-key-ui-invalid');

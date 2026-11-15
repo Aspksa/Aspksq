@@ -134,7 +134,7 @@ class SkillRunner:
                 "model":job["model"], "messages":[
                     {"role":"system", "content":SYSTEM_GUIDANCE+"Навык: "+job["skill_name"]+"\nИнструкция: "+job["description"]},
                     {"role":"user", "content":job["task"]}],
-                "max_tokens":job["max_tokens"], "stream":False}, timeout=180)
+                "max_completion_tokens":job["max_tokens"], "stream":False}, timeout=180)
             parsed = cloudru.completion_result(response, credentials["api_key"])
             if not parsed["reply"].strip():
                 raise cloudru.CloudError("Модель исчерпала лимит на рассуждениях без итогового текста. Увеличьте лимит ответа или выберите другую модель."

@@ -80,16 +80,21 @@ class Handler(BaseHTTPRequestHandler):
                 and self.headers.get("Sec-Fetch-Site") != "cross-site")
 
     def send_body(self, status, body, content_type, attachment=None):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        if attachment:
-            self.send_header("Content-Disposition", f'attachment; filename="{attachment}"')
-        self.end_headers()
-        if self.command != "HEAD":
-            self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            if attachment:
+                self.send_header("Content-Disposition", f'attachment; filename="{attachment}"')
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # Closing/reloading a browser tab must not turn a completed paid
+            # operation into a retry or an alarming server traceback.
+            self.close_connection = True
 
     def send_json(self, status, value):
         self.send_body(status, json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8"),
@@ -155,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 self.send_body(200, (ROOT / name).read_bytes(), STATIC_FILES[name])
         except CloudError as error:
-            self.send_json(error.status, {"error": str(error)})
+            self.send_json(error.status, {"error": str(error), "code": error.code})
         except (OSError, sqlite3.Error):
             self.log_error("Failed to read local database or file")
             self.send_json(500, {"error": "Файл или база недоступны. Проверьте подключение носителя и папку приложения. Затем повторите запуск BAT."})
@@ -175,7 +180,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path in ("/api/cloud/settings", "/api/cloud/test"):
                 cloud = CloudRu(self.database, connect)
-                self.send_json(200, cloud.save(data) if path.endswith("settings") else cloud.verify())
+                self.send_json(200, cloud.save(data) if path.endswith("settings") else cloud.verify(data.get("max_tokens", 128)))
                 return
             with closing(connect(self.database)) as connection, connection:
                 if path == "/api/preferences":
@@ -195,7 +200,7 @@ class Handler(BaseHTTPRequestHandler):
                     result = dict(connection.execute("SELECT * FROM skills WHERE id=?", (skill_id,)).fetchone())
             self.send_json(201 if path == "/api/skills" else 200, result)
         except CloudError as error:
-            self.send_json(error.status, {"error": str(error)})
+            self.send_json(error.status, {"error": str(error), "code": error.code})
         except sqlite3.IntegrityError:
             self.send_json(409, {"error": "Навык с таким названием уже существует"})
         except (ValueError, UnicodeError):

@@ -214,6 +214,9 @@
         <div class="cloud-fields">
           <label for="cloudModel">Текстовая модель</label>
           <select id="cloudModel"><option value="">Выберите текстовую модель</option></select>
+          <p class="dialog-note" id="cloudModelInfo"></p>
+          <label for="cloudTestLimit">Лимит проверочного ответа</label>
+          <select id="cloudTestLimit"><option value="128">128 токенов — короткая проверка</option><option value="512">512 токенов</option><option value="1024">1024 токена — для рассуждений</option></select>
         </div>
         <div class="auth-actions cloud-actions">
           <button id="cloudSaveModel" type="button">Сохранить модель</button>
