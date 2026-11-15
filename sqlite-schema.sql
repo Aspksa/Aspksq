@@ -77,3 +77,29 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL, tags TEXT NOT NULL DEFAULT '[]',
   revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS knowledge_revisions (
+  document_id TEXT NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, tags TEXT NOT NULL,
+  body_sha256 TEXT NOT NULL, recorded_at TEXT NOT NULL,
+  PRIMARY KEY(document_id,revision)
+);
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+  document_id TEXT NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+  chunk_no INTEGER NOT NULL, revision INTEGER NOT NULL, start_char INTEGER NOT NULL, end_char INTEGER NOT NULL,
+  excerpt TEXT NOT NULL, body_sha256 TEXT NOT NULL,
+  PRIMARY KEY(document_id,chunk_no)
+);
+CREATE TABLE IF NOT EXISTS knowledge_terms (
+  term TEXT NOT NULL, document_id TEXT NOT NULL, chunk_no INTEGER NOT NULL,
+  body_tf INTEGER NOT NULL, header_tf INTEGER NOT NULL,
+  PRIMARY KEY(term,document_id,chunk_no),
+  FOREIGN KEY(document_id,chunk_no) REFERENCES knowledge_chunks(document_id,chunk_no) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS knowledge_terms_chunk_idx ON knowledge_terms(document_id,chunk_no);
+CREATE TABLE IF NOT EXISTS chat_requests (
+  turn_id TEXT PRIMARY KEY REFERENCES chat_turns(id) ON DELETE CASCADE,
+  payload TEXT NOT NULL, sha256 TEXT NOT NULL, recorded_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_turns_active_idx ON chat_turns(status) WHERE status='running';
+CREATE INDEX IF NOT EXISTS skill_runs_active_idx ON skill_runs(status) WHERE status='running';

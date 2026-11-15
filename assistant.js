@@ -136,6 +136,12 @@
       }
       var turn=await api('chat/turns/'+encodeURIComponent(graph.current_turn));if(traceNode!==entry)return;
       if(edge.kind==='request'){
+        var recorded=await api('chat/requests/'+encodeURIComponent(graph.current_turn));if(traceNode!==entry)return;
+        if(recorded.recorded){
+          $('traceTitle').textContent='Запрос → '+recorded.payload.model;$('traceMeta').textContent='Точный снимок перед отправкой · '+new Date(recorded.recorded_at).toLocaleString('ru-RU');
+          var names={system:'Инструкция приложения',user:'Сообщение пользователя',assistant:'Предыдущий ответ'};
+          $('traceContent').textContent=recorded.payload.messages.map(function(message){return (names[message.role]||message.role)+':\n'+message.content;}).join('\n\n');return;
+        }
         $('traceTitle').textContent='Запрос → '+turn.model;$('traceMeta').textContent='Сохранённые вопрос и контекст';
         var blocks=['Вопрос:\n'+turn.task];(turn.sources||[]).forEach(function(doc,index){blocks.push('Материал ['+(index+1)+'] '+doc.title+' · версия '+doc.revision+'\n'+doc.excerpt);});
         var history=await Promise.all((turn.context_turns||[]).map(function(id){return api('chat/turns/'+encodeURIComponent(id));}));if(traceNode!==entry)return;

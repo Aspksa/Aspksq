@@ -20,7 +20,7 @@ import webbrowser
 from cloudru import CloudError, CloudRu
 from skillrunner import SkillRunner, catalog as skill_catalog, recover_interrupted
 from chatrunner import ChatRunner, recover_chat
-from knowledge import Knowledge
+from knowledge import Knowledge, index_document
 
 ROOT = Path(__file__).resolve().parent
 STATIC_FILES = {"index.html": "text/html; charset=utf-8",
@@ -50,9 +50,9 @@ def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 6:
+        if version > 7:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
-        if version == 6:
+        if version == 7:
             return
         connection.execute("BEGIN IMMEDIATE")
         schema = (ROOT / "sqlite-schema.sql").read_text(encoding="utf-8")
@@ -74,7 +74,9 @@ def initialize(database):
             connection.execute("ALTER TABLE chat_turns ADD COLUMN sources TEXT NOT NULL DEFAULT '[]'")
         if 'context_turns' not in columns:
             connection.execute('ALTER TABLE chat_turns ADD COLUMN context_turns TEXT')
-        connection.execute("PRAGMA user_version=6")
+        for document in connection.execute('SELECT * FROM knowledge_documents').fetchall():
+            index_document(connection, document)
+        connection.execute("PRAGMA user_version=7")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -145,6 +147,8 @@ class Handler(BaseHTTPRequestHandler):
             elif path == '/api/chat/graph':
                 query = parse_qs(urlsplit(self.path).query)
                 self.send_json(200, ChatRunner(self.database, connect).graph(query.get('session_id', [None])[0], query.get('turn_id', [None])[0]))
+            elif path.startswith('/api/chat/requests/'):
+                self.send_json(200, ChatRunner(self.database, connect).request_record(path.rsplit('/', 1)[-1]))
             elif path.startswith("/api/chat/turns/"):
                 self.send_json(200, ChatRunner(self.database, connect).get(path.rsplit("/", 1)[-1]))
             elif path == "/api/skill-catalog":
@@ -238,7 +242,10 @@ class Handler(BaseHTTPRequestHandler):
         except CloudError as error:
             self.send_json(error.status, {"error": str(error), "code": error.code})
         except sqlite3.IntegrityError:
-            self.send_json(409, {"error": "Навык с таким названием уже существует"})
+            if path == '/api/skills':
+                self.send_json(409, {"error": "Навык с таким названием уже существует"})
+            else:
+                self.send_json(500, {"error": "Не удалось согласованно сохранить данные. Проверьте локальную базу."})
         except (ValueError, UnicodeError):
             self.send_json(400, {"error": "Некорректный запрос: проверьте название, описание и формат JSON"})
         except sqlite3.Error:

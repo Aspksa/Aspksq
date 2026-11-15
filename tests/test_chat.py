@@ -141,7 +141,7 @@ class ChatTests(unittest.TestCase):
                 self.assertEqual(request(port,'/api/chat')[1]['session_id'],identifier)
                 self.assertEqual(request(port,'/api/chat/turns/'+data['request_id'])[1]['status'],'interrupted')
             with closing(server.connect(database)) as db:
-                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],6)
+                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],7)
 
     def test_history_is_bounded_and_keeps_whole_exchanges(self):
         with tempfile.TemporaryDirectory() as directory, application(Path(directory)/'data.sqlite3') as port:
