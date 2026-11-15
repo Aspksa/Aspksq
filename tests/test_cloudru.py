@@ -114,7 +114,7 @@ class CloudRuTests(unittest.TestCase):
                 connection.execute("INSERT INTO user_preferences(id,preferences) VALUES(1,'{\"layout\":\"hex\"}')")
             server.initialize(database)
             with closing(server.connect(database)) as connection:
-                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
+                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
                 self.assertEqual(connection.execute("SELECT count(*) FROM clients").fetchone()[0], 19)
                 self.assertEqual(connection.execute("SELECT name FROM skills").fetchone()[0], "Мой навык")
                 self.assertEqual(json.loads(connection.execute("SELECT preferences FROM user_preferences").fetchone()[0])["layout"], "hex")

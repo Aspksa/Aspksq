@@ -273,9 +273,39 @@
       </div>
     </div>
   </div>
+  <button class="assistant-avatar" id="assistantAvatar" type="button" aria-label="Открыть AI-чат. Аватар можно перетащить" aria-controls="assistantChat" aria-expanded="false" aria-describedby="assistantDragHint" title="AI-помощник · нажмите для чата, перетащите для перемещения">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path class="avatar-orbit" d="M12 23C4 43 37 63 53 43S38 1 18 16"/><path class="avatar-antenna" d="M32 17V10"/><circle class="avatar-light" cx="32" cy="8" r="3"/><rect class="avatar-face" x="13" y="18" width="38" height="31" rx="13"/><rect class="avatar-screen" x="19" y="24" width="26" height="17" rx="7"/><path class="avatar-eyes" d="M25 31v3m14-3v3"/><path class="avatar-smile" d="M28 44h8"/></svg>
+    <span class="assistant-badge" aria-hidden="true"></span>
+  </button>
+  <span id="assistantDragHint" class="assistant-sr">Перетаскивайте мышью или пальцем. С клавиатуры: стрелки — переместить, Home — вернуть в угол, Enter — открыть чат.</span>
+  <section class="assistant-chat hidden" id="assistantChat" role="dialog" aria-labelledby="assistantTitle" aria-modal="false">
+    <header class="assistant-header">
+      <div><p>TRACKTOR · AI</p><h2 id="assistantTitle">Помощник рядом</h2></div>
+      <button id="chatClose" type="button" aria-label="Закрыть чат">×</button>
+    </header>
+    <div class="assistant-toolbar">
+      <label class="assistant-sr" for="chatSession">Диалог</label>
+      <select id="chatSession" aria-label="Выбрать диалог"><option value="">Новый диалог</option></select>
+      <button id="chatNew" type="button" title="Начать новый диалог">＋ Новый</button>
+    </div>
+    <div class="assistant-model"><span id="chatModel">Проверяю модель…</span><button id="chatSettings" type="button">Настроить</button></div>
+    <div id="chatMessages" class="assistant-messages" aria-label="Сообщения диалога" tabindex="0"></div>
+    <p id="chatStatus" class="assistant-status" role="status" aria-live="polite"></p>
+    <form id="chatForm" class="assistant-composer">
+      <label class="assistant-sr" for="chatInput">Сообщение помощнику</label>
+      <textarea id="chatInput" rows="3" maxlength="10000" placeholder="Спросите или опишите задачу…"></textarea>
+      <div class="assistant-send-row">
+        <label for="chatLimit">Лимит <select id="chatLimit"><option value="1024">1024</option><option value="2048" selected>2048</option><option value="4096">4096</option><option value="8192">8192</option></select></label>
+        <button id="chatRefresh" type="button" aria-label="Обновить состояние чата" title="Обновить состояние">↻</button>
+        <button id="chatSend" type="submit">Отправить ↑</button>
+      </div>
+      <p class="assistant-note">Cloud.ru · запросы расходуют токены. История — в локальной базе. Передаются ваши сообщения, без автоматического доступа к проекту.</p>
+    </form>
+  </section>
   <script src="database.js" defer></script>
   <script src="app.js" defer></script>
   <script src="cloud.js" defer></script>
   <script src="skills.js" defer></script>
+  <script src="assistant.js" defer></script>
 </body>
 </html>
