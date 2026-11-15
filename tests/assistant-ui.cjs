@@ -88,7 +88,9 @@ async function drag(page,from,to){await page.mouse.move(from.x,from.y);await pag
    // Avatar remains available after navigation to the other page.
    await page.locator('#openBrainButton').click();await avatar.click();await ready(page);await finished(page,'Проверка потерянного ответа');
    await page.locator('#chatClose').click();
-   await page.setViewportSize({width:320,height:600});box=await avatar.boundingBox();assert(box.x>=0&&box.x+box.width<=320&&box.y+box.height<=600,'Avatar lost after resize');
+   await page.setViewportSize({width:320,height:600});
+   await page.waitForFunction(()=>{const box=document.querySelector('#assistantAvatar').getBoundingClientRect();return box.x>=0&&box.x+box.width<=innerWidth&&box.y+box.height<=innerHeight;});
+   box=await avatar.boundingBox();assert(box.x>=0&&box.x+box.width<=320&&box.y+box.height<=600,'Avatar lost after resize');
    await context.close();
   }
   assert.deepEqual(errors,[]);console.log('✓ Avatar mouse/touch/keyboard drag, persisted position, chat history/context, reload, no duplicate requests, lost POST response, safe text, 4 widths');

@@ -22,7 +22,12 @@
   }
   function status(text,error){$('chatStatus').textContent=text;$('chatStatus').classList.toggle('assistant-error',Boolean(error));}
   function bounds(){return {x:Math.max(0,window.innerWidth-avatar.offsetWidth-16),y:Math.max(0,window.innerHeight-avatar.offsetHeight-16)};}
-  function place(){var b=bounds();avatar.style.left=(8+position.x*b.x)+'px';avatar.style.top=(8+position.y*b.y)+'px';}
+  function place(){
+    // Viewport-relative CSS keeps the avatar on screen even before a resize
+    // event reaches JavaScript (including display/orientation changes).
+    avatar.style.left='calc(8px + max(0px, 100vw - 80px) * '+position.x+')';
+    avatar.style.top='calc(8px + max(0px, 100dvh - 80px) * '+position.y+')';
+  }
   function rememberPosition(){
     var value={x:position.x,y:position.y};moved=true;var revision=++positionVersion;
     try{localStorage.setItem('tracktor-avatar-position',JSON.stringify(value));}catch(ignored){}
