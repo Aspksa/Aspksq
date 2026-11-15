@@ -100,8 +100,9 @@ class SkillRunner:
                         or existing["max_tokens"] != limit or existing["model"] != expected_model):
                     raise cloudru.CloudError("Этот идентификатор уже принадлежит другой задаче", 409)
                 return public_run(existing)
-            if connection.execute("SELECT 1 FROM skill_runs WHERE status='running' LIMIT 1").fetchone():
-                raise cloudru.CloudError("Навык уже выполняется. Дождитесь результата текущего запуска.", 409)
+            if (connection.execute("SELECT 1 FROM skill_runs WHERE status='running' LIMIT 1").fetchone()
+                    or connection.execute("SELECT 1 FROM chat_turns WHERE status='running' LIMIT 1").fetchone()):
+                raise cloudru.CloudError("Уже выполняется запрос чата или навыка. Дождитесь результата.", 409)
             # Use server-side instructions and credentials, not a prompt/model supplied by the browser.
             skills = {skill["id"]:skill for skill in catalog(self.database, self.connect)}
             skill = skills.get(skill_id)

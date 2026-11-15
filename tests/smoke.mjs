@@ -11,6 +11,7 @@ const schema = readFileSync(new URL('../sqlite-schema.sql', import.meta.url), 'u
 
 new Script(js, { filename: 'app.js' });
 new Script(db, { filename: 'database.js' });
+new Script(readFileSync(new URL('../assistant.js', import.meta.url), 'utf8'), { filename: 'assistant.js' });
 assert.doesNotMatch(html, /supabase|cdn\.jsdelivr/i, 'Локальная версия не требует облачного SDK');
 assert.match(html, /<html lang="ru">/, 'Русская локализация документа');
 assert.match(html, /<script src="database\.js" defer><\/script>/);
@@ -25,7 +26,8 @@ const required = [
   'skillsGrid','routineList','clientModal','clientModalNote','clientOpenBrain','authModal','accountButton','backupDatabase','retryDatabase','brainPage','brainSvg',
   'mapViewport','mapTooltip','brainLoader','layoutButtons','viewButtons','fileSearch',
   'plaqueToggle','hudToggle','ringAngle','ringForce','mapSize','fileNames','themeList',
-  'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch'
+  'saveSettings','exportPng','zoomIn','zoomOut','zoomReset','navMenu','navSearch',
+  'assistantAvatar','assistantChat','chatForm','chatInput','chatSession','chatSend'
 ];
 for(const id of required)assert.ok(ids.has(id), 'Отсутствует элемент '+id);
 

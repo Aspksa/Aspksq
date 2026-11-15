@@ -54,3 +54,20 @@ CREATE TABLE IF NOT EXISTS skill_runs (
   created_at TEXT NOT NULL, finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS skill_runs_skill_idx ON skill_runs(skill_id);
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT 'Новый диалог', created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS chat_turns (
+  id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  task TEXT NOT NULL, model TEXT NOT NULL, max_tokens INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('running','succeeded','partial','failed','interrupted')),
+  result TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', usage TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL, finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS chat_turns_session_idx ON chat_turns(session_id);
+CREATE TABLE IF NOT EXISTS assistant_state (
+  id INTEGER PRIMARY KEY CHECK(id=1),
+  active_session TEXT REFERENCES chat_sessions(id) ON DELETE SET NULL,
+  x REAL NOT NULL DEFAULT 1, y REAL NOT NULL DEFAULT 1
+);

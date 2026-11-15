@@ -23,7 +23,8 @@ def fake_provider(path, api_key, data=None, timeout=40):
         raise cloudru.CloudError('Cloud.ru отклонил ключ. Укажите действующий Key Secret для Foundation Models.', 401)
     if data and len(data.get('messages',[])) > 1:
         time.sleep(1)
-        return {'choices':[{'message':{'content':'Результат навыка: '+data['messages'][-1]['content']+'\n<img src=x onerror=alert(1)>'},'finish_reason':'stop'}],
+        prefix='Ответ помощника: ' if 'локальном приложении TRACKTOR' in data['messages'][0]['content'] else 'Результат навыка: '
+        return {'choices':[{'message':{'content':prefix+data['messages'][-1]['content']+'\nУчтено сообщений: '+str(len(data['messages']))+'\n<img src=x onerror=alert(1)>'},'finish_reason':'stop'}],
                 'usage':{'prompt_tokens':10,'completion_tokens':20,'total_tokens':30}}
     return {'choices':[{'message':{'content':'Работает. Подключение к выбранной модели проверено.'},'finish_reason':'stop'}]}
 
