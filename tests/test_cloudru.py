@@ -80,7 +80,7 @@ class CloudRuTests(unittest.TestCase):
                     outbound = opener.return_value.open.call_args.args[0]
                     body = json.loads(outbound.data)
                     self.assertEqual(body["model"], MODEL)
-                    self.assertEqual(body["max_tokens"], 128)
+                    self.assertEqual(body["max_completion_tokens"], 128)
                     self.assertFalse(body["stream"])
                     self.assertNotIn(KEY, json.dumps(body))
                 self.assertTrue(request(port, "/api/cloud/settings")[1]["verified_at"])
@@ -153,9 +153,11 @@ class CloudRuTests(unittest.TestCase):
                     self.assertEqual(status, 200)
                     self.assertEqual(result["reply"], "")
                     self.assertIn("лимит", result["message"])
+                    self.assertIsNone(result["verified_at"])
+                    self.assertIsNone(request(port, "/api/cloud/settings")[1]["verified_at"])
                 request(port, "/api/cloud/settings", {"model": "test/other"})
                 self.assertIsNone(request(port, "/api/cloud/settings")[1]["verified_at"])
-                def changed_settings(*args):
+                def changed_settings(*args, **kwargs):
                     cloudru.CloudRu(database, server.connect).save({"model": "test/changed-in-another-window"})
                     return {"choices":[{"message":{"content":"Работает"}, "finish_reason":"stop"}]}
                 with patch("cloudru.provider_request", side_effect=changed_settings):

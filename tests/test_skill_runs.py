@@ -77,6 +77,7 @@ class SkillRunTests(unittest.TestCase):
                     self.assertEqual(args.kwargs['timeout'],180)
                     sent=args.args[2]
                     self.assertEqual(sent['model'],MODEL)
+                    self.assertEqual(sent['max_completion_tokens'],body['max_tokens'])
                     self.assertEqual(sent['messages'][1]['content'],body['task'])
                     self.assertIn('трёх разделах',sent['messages'][0]['content'])
                     self.assertNotIn(KEY,json.dumps(sent))
