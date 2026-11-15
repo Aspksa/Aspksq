@@ -67,11 +67,12 @@
   if(window.visualViewport)window.visualViewport.addEventListener('resize',function(){panel.style.setProperty('--chat-height',window.visualViewport.height+'px');panel.style.setProperty('--chat-top',window.visualViewport.offsetTop+'px');});
   function controls(){
     var active=Boolean(state.active),locked=busy||posting||active||Boolean(pending);
-    $('chatInput').disabled=locked;$('chatLimit').disabled=locked;
+    $('chatInput').disabled=locked;$('chatKnowledge').disabled=locked;
     $('chatSend').disabled=busy||posting||active||!settings.has_key||!settings.model||!state.session_id||(!pending&&!$('chatInput').value.trim());
     $('chatSend').textContent=pending?'Проверить отправку':active?'Отвечаю…':'Отправить ↑';
     $('chatNew').disabled=busy||posting||Boolean(pending);$('chatSession').disabled=busy||posting||Boolean(pending);
     $('chatSettings').disabled=busy||posting||Boolean(pending);$('chatRefresh').disabled=busy||posting;
+    $('chatMaterials').disabled=busy||posting;
     avatar.classList.toggle('is-thinking',active);avatar.setAttribute('aria-busy',String(active));
   }
   function article(role,text,detail){
@@ -95,7 +96,22 @@
       list.appendChild(article('user',turn.task));
       var label=turn.model,error=turn.error||'';
       if(turn.status==='running')list.appendChild(article('assistant','Думаю над ответом…',label+' · Можно закрыть чат, запрос продолжится.'));
-      else if(turn.result)list.appendChild(article('assistant',turn.result,label+(error?' · '+error:'')));
+      else if(turn.result){
+        var reply=article('assistant',turn.result,label+(error?' · '+error:''));
+        if(turn.sources&&turn.sources.length){
+          var details=document.createElement('details');details.className='assistant-sources';
+          var summary=document.createElement('summary');summary.textContent='Материалы, переданные модели: '+turn.sources.length;details.appendChild(summary);
+          turn.sources.forEach(function(source,index){
+            var button=document.createElement('button');button.type='button';button.textContent='['+(index+1)+'] '+source.title+' ↗';
+            button.title='Показать материал и связанные метки на карте';
+            button.addEventListener('click',function(){close();window.TracktorKnowledge.showSources([source.id]);});details.appendChild(button);
+            var excerpt=document.createElement('p');excerpt.textContent=source.excerpt;details.appendChild(excerpt);
+          });
+          var map=document.createElement('button');map.type='button';map.textContent='Все источники на карте';map.addEventListener('click',function(){close();window.TracktorKnowledge.showSources(turn.sources.map(function(source){return source.id;}));});details.appendChild(map);
+          var note=document.createElement('small');note.textContent='Фрагменты сохранены на момент запроса. Связи на карте основаны на общих метках.';details.appendChild(note);reply.appendChild(details);
+        }else if(turn.include_knowledge){var missing=document.createElement('small');missing.textContent='Поиск по базе не нашёл подходящих материалов.';reply.appendChild(missing);}
+        list.appendChild(reply);
+      }
       else list.appendChild(article('assistant','Ответ не получен.',label+' · '+error));
     });
     if(pending&&!state.turns.some(function(turn){return turn.id===pending.request_id;}))list.appendChild(article('user',pending.task,'Проверяем, принял ли сервер сообщение.'));
@@ -146,6 +162,7 @@
   $('chatInput').addEventListener('input',controls);
   $('chatInput').addEventListener('keydown',function(event){if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();if(!$('chatSend').disabled)$('chatForm').requestSubmit();}});
   $('chatSettings').addEventListener('click',function(){close();window.TracktorCloudSettings.open();});
+  $('chatMaterials').addEventListener('click',function(){close();window.TracktorKnowledge.open();});
   $('chatRefresh').addEventListener('click',async function(){if(busy)return;busy=true;controls();await refresh(true);busy=false;controls();});
   async function switchSession(create){
     if(busy||posting||pending)return;busy=true;var token=++generation;clearTimeout(timer);controls();
@@ -157,7 +174,7 @@
   $('chatForm').addEventListener('submit',async function(event){
     event.preventDefault();if(busy||posting||state.active||!state.session_id)return;
     var task=$('chatInput').value.trim();if(!pending&&!task)return;
-    if(!pending)savePending({request_id:crypto.randomUUID(),session_id:state.session_id,task:task,max_tokens:Number($('chatLimit').value),expected_model:settings.model});
+    if(!pending)savePending({request_id:crypto.randomUUID(),session_id:state.session_id,task:task,include_knowledge:$('chatKnowledge').checked,expected_model:settings.model});
     var payload=pending,token=generation;posting=true;controls();status('Передаю сообщение…');
     try{
       await api('chat/turns',payload);savePending(null);drafts[payload.session_id]='';if(token===generation)$('chatInput').value='';if(opened)await refresh(false);

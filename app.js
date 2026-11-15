@@ -61,6 +61,59 @@
   };
   var drag = null, dragged = false, timerToast = 0, loaderTimer = 0, revealTimer = 0, brainLoadedOnce = false;
   var databaseSkills = [], databaseClients = null, databaseProjects = null, databaseRoutines = null;
+  var knowledgeData={nodes:[],edges:[],documents:0},knowledgeActive=false,knowledgeSelection=[];
+  function brainLabel(){return knowledgeActive?knowledgeData.documents+" МАТЕРИАЛОВ · "+knowledgeData.edges.length+" СВЯЗЕЙ ПО МЕТКАМ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";}
+  function knowledgeModeUI(){
+    $("knowledgeMode").classList.toggle("active",knowledgeActive);$("demoMode").classList.toggle("active",!knowledgeActive);
+    $("knowledgeMode").setAttribute("aria-pressed",String(knowledgeActive));$("demoMode").setAttribute("aria-pressed",String(!knowledgeActive));
+    $("knowledgeMapStatus").textContent=knowledgeData.documents+" материалов · "+knowledgeData.edges.length+" связей по меткам. "+(knowledgeSelection.length?"Источники и соседние узлы выделены.":"Нажмите материал, чтобы прочитать или изменить.");
+    $("fileSearch").placeholder=knowledgeActive?"Поиск названий и меток":"Поиск файлов ( / )";
+    $("brainDataCount").textContent=brainLabel();
+    $("viewButtons").closest('section').hidden=knowledgeActive;
+    $("plaqueToggle").hidden=knowledgeActive;
+    if(state.page==="brain")$("systemLabel").textContent=brainLabel();
+  }
+  function renderKnowledge(group){
+    knowledgeModeUI();
+    var data=knowledgeData,nodes=data.nodes,coords={},related=new Set(knowledgeSelection),selected=new Set(knowledgeSelection);
+    data.edges.forEach(function(edge){if(selected.has(edge.source))related.add(edge.target);if(selected.has(edge.target))related.add(edge.source);});
+    data.edges.forEach(function(edge){if(related.has(edge.target))related.add(edge.source);});
+    if(!nodes.length){drawText(group,550,410,"ВАША БАЗА ЗНАНИЙ ПОКА ПУСТА",accent(0),19);drawText(group,550,450,"Добавьте материал кнопкой в панели справа",theme().muted||"#89a7b4",13);return;}
+    var tags=nodes.filter(function(node){return node.type==="tag";}),docs=nodes.filter(function(node){return node.type==="document";});
+    var columns=Math.ceil(Math.sqrt(nodes.length*1.3)),rows=Math.ceil(nodes.length/columns);
+    nodes.forEach(function(node,index){
+      var point;
+      if(state.layout==="hex"){
+        var row=Math.floor(index/columns),column=index%columns;
+        point=[100+(column+(row%2)*.35)*880/Math.max(1,columns),120+row*650/Math.max(1,rows-1)];
+      }else if(state.layout==="force"){
+        var key=node.type==="tag"?node.title:(node.tags&&node.tags[0]),tagIndex=tags.findIndex(function(tag){return tag.title===key;});
+        var angle=(Math.max(0,tagIndex)/Math.max(1,tags.length))*Math.PI*2;
+        var center=tags.length?polar(550,450,235,angle):[550,450];
+        point=node.type==="tag"?center:polar(center[0],center[1],85+(index%3)*20,index*2.4);
+      }else{
+        var collection=node.type==="tag"?tags:docs,i=collection.indexOf(node),angle=i/Math.max(1,collection.length)*Math.PI*2-Math.PI/2+state.angle*.5;
+        var radius=node.type==="tag"?130:state.layout==="circle"?320:230+(i%2)*120;
+        point=polar(550,450,radius,angle);if(collection.length===1&&!tags.length)point=[550,450];
+      }
+      coords[node.id]=point;
+    });
+    var query=state.search.trim().toLocaleLowerCase('ru');
+    function matches(node){return !query||(node.title+' '+(node.tags||[]).join(' ')).toLocaleLowerCase('ru').includes(query);}
+    data.edges.forEach(function(edge){var bright=!selected.size||related.has(edge.source)&&related.has(edge.target);drawLine(group,coords[edge.source],coords[edge.target],bright?accent(0):'#36525d',bright?1.7:.7,bright?.55:.12);});
+    nodes.forEach(function(node){
+      var point=coords[node.id],source=selected.has(node.id),connected=!selected.size||related.has(node.id);
+      var item=svg('g',{class:'knowledge-node'+(source?' is-source':''),transform:'translate('+point[0]+','+point[1]+')',tabindex:'0',role:'button','data-document-id':node.type==='document'?node.id:null,'data-knowledge-id':node.id,'aria-label':(node.type==='tag'?'Метка: ':'Материал: ')+node.title,opacity:matches(node)&&connected?1:.18},group);
+      svg('title',{},item,node.title);
+      drawCircle(item,0,0,(node.type==='tag'?17:25)+state.size*8,source?'#204e42':'#102330',source?accent(0):node.type==='tag'?accent(3):accent(1),source?3:1.3,1);
+      drawText(item,0,5,node.type==='tag'?'#':'▤',source?accent(0):'#c3dfdf',19);
+      drawText(item,0,51,node.title.length>28?node.title.slice(0,27)+'…':node.title,source?accent(0):'#bad2d8',11);
+      function activate(){if(node.type==='document'){if(window.TracktorKnowledge)window.TracktorKnowledge.open(node.id);}else{knowledgeSelection=selected.has(node.id)?[]:[node.id];renderBrain();}}
+      item.addEventListener('click',function(event){event.stopPropagation();if(!dragged)activate();});
+      item.addEventListener('keydown',function(event){event.stopPropagation();if(event.key==='Enter'||event.key===' '){event.preventDefault();activate();}});
+    });
+    $("canvasHint").textContent='БАЗА ЗНАНИЙ · МАТЕРИАЛ — ОТКРЫТЬ · МЕТКА — ПОКАЗАТЬ СВЯЗИ · ESC — СНЯТЬ ВЫДЕЛЕНИЕ';
+  }
   function random(seed) {
     var x = Math.sin(seed * 127.1 + 34.7) * 43758.5453123;
     return x - Math.floor(x);
@@ -761,17 +814,20 @@
     });
   }
   function updateTransform(){
-    var width=window.innerWidth,baseX=(width>=641&&width<=950)?190:0;
+    var width=window.innerWidth,baseX=(!knowledgeActive&&width>=641&&width<=950)?190:0;
     $("mapViewport").setAttribute("transform","translate("+(state.panX+baseX)+" "+state.panY+") translate(550 460) scale("+state.zoom+") translate(-550 -460)");
   }
   function renderBrain(transition){
     ensureBackdrop();
     var group=$("mapViewport");
+    var focusedKnowledge=group.contains(document.activeElement)&&document.activeElement.getAttribute('data-knowledge-id');
     clearHoverLinks();
     var stale=$("previousMap");if(stale)stale.remove();
     if(transition&&group.childNodes.length&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
       var old=group.cloneNode(true);
       old.id="previousMap";
+      old.setAttribute('aria-hidden','true');
+      old.querySelectorAll('[tabindex]').forEach(function(node){node.removeAttribute('tabindex');});
       old.setAttribute("pointer-events","none");
       old.classList.add("graph-exit");
       group.parentNode.insertBefore(old,group);
@@ -779,17 +835,19 @@
     }
     group.classList.remove("graph-enter");
     group.textContent="";
-    if(state.layout==="rings")rings(group);
+    if(knowledgeActive)renderKnowledge(group);
+    else if(state.layout==="rings")rings(group);
     else if(state.layout==="circle")circleLayout(group);
     else if(state.layout==="hex")hexLayout(group);
     else forceLayout(group);
     if(state.hud){
       drawText(group,40,42,"TRACKTOR / ВТОРОЙ МОЗГ",accent(0),10,"start",{opacity:".5"});
-      drawText(group,40,60,"РЕЖИМ: "+({rings:"КОЛЬЦА",circle:"КРУГ",hex:"СОТЫ",force:"СИЛОВАЯ"}[state.layout])+" · ФАЙЛОВ: 2209",accent(2),8,"start",{opacity:".4"});
+      drawText(group,40,60,"РЕЖИМ: "+({rings:"КОЛЬЦА",circle:"КРУГ",hex:"СОТЫ",force:"СИЛОВАЯ"}[state.layout])+" · "+brainLabel(),accent(2),8,"start",{opacity:".4"});
       drawText(group,1060,875,"MAX MUNHOZ · ИНТЕРАКТИВНАЯ КАРТА","#476574",9,"end");
     }
     updateTransform();
     hideDetails();
+    if(focusedKnowledge){var replacement=Array.from(group.querySelectorAll('[data-knowledge-id]')).find(function(node){return node.getAttribute('data-knowledge-id')===focusedKnowledge;});if(replacement)replacement.focus({preventScroll:true});}
     if(transition&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
       void group.getBoundingClientRect();
       group.classList.add("graph-enter");
@@ -808,7 +866,7 @@
       $("brainSettings").classList.remove("brain-settings-appearance");
       loaderTimer=setTimeout(function(){
         $("brainLoader").classList.add("hidden");
-        if(state.page==="brain")$("systemLabel").textContent="2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
+        if(state.page==="brain")$("systemLabel").textContent=brainLabel();
         if(state.page==="brain"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
           $("mapViewport").classList.add("brain-first-appearance");
           $("brainSettings").classList.add("brain-settings-appearance");
@@ -822,7 +880,7 @@
     $("commandPage").hidden=true;$("brainPage").hidden=false;
     $("brandSection").textContent="Второй мозг";
     $("brandSubtitle").textContent="АВТОР: MAX MUNHOZ";
-    $("systemLabel").textContent=firstOpening?"ЗАГРУЗКА КАРТЫ":"2209 ФАЙЛОВ · 137 ПРОЦЕССОВ";
+    $("systemLabel").textContent=firstOpening?"ЗАГРУЗКА КАРТЫ":brainLabel();
     state.focus=null;
     if(query){
       $("fileSearch").value=query;
@@ -883,7 +941,7 @@
       var unit=Math.min(rect.width/1100,rect.height/920);
       var insetX=(rect.width-1100*unit)/2,insetY=(rect.height-920*unit)/2;
       var targetX=(mouseX-rect.left-insetX)/unit,targetY=(mouseY-rect.top-insetY)/unit;
-      var baseX=(window.innerWidth>=641&&window.innerWidth<=950)?190:0;
+      var baseX=(!knowledgeActive&&window.innerWidth>=641&&window.innerWidth<=950)?190:0;
       state.panX+=(before-after)*(targetX-baseX-state.panX-550)/before;
       state.panY+=(before-after)*(targetY-state.panY-460)/before;
     }
@@ -1016,7 +1074,7 @@
       this.setAttribute("aria-pressed",String(state.hud));
       renderBrain();
     });
-    $("fileSearch").addEventListener("input",function(e){state.search=e.target.value;state.focus=null;renderBrain();});
+    $("fileSearch").addEventListener("input",function(e){state.search=e.target.value;state.focus=null;knowledgeSelection=[];renderBrain();});
     $("expandAll").addEventListener("click",function(){state.expanded=true;renderBrain();});
     $("collapseAll").addEventListener("click",function(){state.expanded=false;renderBrain();});
     ["recenter","zoomReset"].forEach(function(id){$(id).addEventListener("click",function(){resetPosition();renderBrain();});});
@@ -1098,11 +1156,12 @@
     }
     $("brainSvg").addEventListener("pointerup",stopDrag);
     $("brainSvg").addEventListener("pointercancel",stopDrag);
-    $("brainSvg").addEventListener("click",function(e){if(!dragged&&(e.target===$("brainSvg")||e.target===$("mapViewport"))){state.focus=null;hideDetails();clearHoverLinks();renderBrain();}});
+    $("brainSvg").addEventListener("click",function(e){if(!dragged&&(e.target===$("brainSvg")||e.target===$("mapViewport"))){state.focus=null;knowledgeSelection=[];hideDetails();clearHoverLinks();renderBrain();}});
     $("closeShortcuts").addEventListener("click",function(){$("shortcuts").classList.add("hidden");});
     $("shortcuts").addEventListener("click",function(e){if(e.target===this)this.classList.add("hidden");});
     document.addEventListener("keydown",function(e){
       if(e.key==="Escape"){
+        if(knowledgeActive&&knowledgeSelection.length){knowledgeSelection=[];renderBrain();}
         hideClient();hideAuthModal();
         $("shortcuts").classList.add("hidden");$("headerMenu").classList.add("hidden");$("navMenu").setAttribute("aria-expanded","false");hideDetails();clearHoverLinks();if(state.focus){state.focus=null;renderBrain();$("canvasHint").textContent="ПЕРЕТАСКИВАНИЕ — ПЕРЕМЕСТИТЬ · КОЛЕСО — МАСШТАБ · КЛИК — ФИЛЬТР";}
         if(document.body.classList.contains("presenting")){document.body.classList.remove("presenting");if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(function(){});}
@@ -1159,6 +1218,12 @@
     $("plaqueToggle").classList.toggle("active",state.plaque);
     $("plaqueToggle").setAttribute("aria-pressed",String(state.plaque));
   }
+  window.TracktorBrain={
+    updateKnowledge:function(data){knowledgeData=data;knowledgeModeUI();if(knowledgeActive)renderBrain();},
+    showKnowledge:function(data,ids,stay){knowledgeData=data;knowledgeSelection=ids||[];knowledgeActive=true;knowledgeModeUI();if(!stay){resetPosition();openBrain();}else renderBrain();},
+    showDemo:function(){knowledgeActive=false;knowledgeSelection=[];knowledgeModeUI();openBrain();}
+  };
+  $("demoMode").addEventListener('click',window.TracktorBrain.showDemo);
   readSaved();renderHeaderIcons();renderWallet();renderFunnel();renderSkills();renderRoutines();renderTeam();renderCalendar();renderThemes();restoreUI();renderCommand();bind();
   window.TracktorDB.init().then(function(){updateDatabaseUI();if(window.TracktorDB.isReady())return syncDatabaseData();})
     .catch(function(error){updateDatabaseUI();notify("Ошибка подключения к базе: "+error.message);});

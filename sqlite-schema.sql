@@ -71,3 +71,8 @@ CREATE TABLE IF NOT EXISTS assistant_state (
   active_session TEXT REFERENCES chat_sessions(id) ON DELETE SET NULL,
   x REAL NOT NULL DEFAULT 1, y REAL NOT NULL DEFAULT 1
 );
+
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL, tags TEXT NOT NULL DEFAULT '[]',
+  revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);

@@ -20,6 +20,7 @@ import webbrowser
 from cloudru import CloudError, CloudRu
 from skillrunner import SkillRunner, catalog as skill_catalog, recover_interrupted
 from chatrunner import ChatRunner, recover_chat
+from knowledge import Knowledge
 
 ROOT = Path(__file__).resolve().parent
 STATIC_FILES = {"index.html": "text/html; charset=utf-8",
@@ -28,7 +29,8 @@ STATIC_FILES = {"index.html": "text/html; charset=utf-8",
                 "database.js": "text/javascript; charset=utf-8",
                 "cloud.js": "text/javascript; charset=utf-8",
                 "skills.js": "text/javascript; charset=utf-8",
-                "assistant.js": "text/javascript; charset=utf-8"}
+                "assistant.js": "text/javascript; charset=utf-8",
+                "knowledge.js": "text/javascript; charset=utf-8"}
 TABLES = {"clients": "sort_order, name", "projects": "sort_order, name",
           "skills": "sort_order, name", "routines": "sort_order, scheduled_at",
           "tasks": "due_at", "notifications": "created_at DESC"}
@@ -48,9 +50,9 @@ def initialize(database):
     database.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(database, create=True)) as connection, connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 4:
+        if version > 5:
             raise RuntimeError("Database was created by a newer version of TRACKTOR")
-        if version == 4:
+        if version == 5:
             return
         connection.execute("BEGIN IMMEDIATE")
         schema = (ROOT / "sqlite-schema.sql").read_text(encoding="utf-8")
@@ -65,7 +67,12 @@ def initialize(database):
                     columns = ",".join(row)
                     placeholders = ",".join("?" for _ in row)
                     connection.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))
-        connection.execute("PRAGMA user_version=4")
+        columns = {row[1] for row in connection.execute('PRAGMA table_info(chat_turns)')}
+        if 'include_knowledge' not in columns:
+            connection.execute('ALTER TABLE chat_turns ADD COLUMN include_knowledge INTEGER NOT NULL DEFAULT 0')
+        if 'sources' not in columns:
+            connection.execute("ALTER TABLE chat_turns ADD COLUMN sources TEXT NOT NULL DEFAULT '[]'")
+        connection.execute("PRAGMA user_version=5")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -122,7 +129,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         try:
-            if path == "/api/assistant-position":
+            if path == '/api/knowledge':
+                self.send_json(200, Knowledge(self.database, connect).documents())
+            elif path == '/api/knowledge/graph':
+                self.send_json(200, Knowledge(self.database, connect).graph())
+            elif path.startswith('/api/knowledge/document/'):
+                self.send_json(200, Knowledge(self.database, connect).get(path.rsplit('/', 1)[-1]))
+            elif path == "/api/assistant-position":
                 self.send_json(200, ChatRunner(self.database, connect).position())
             elif path == "/api/chat":
                 session_id = parse_qs(urlsplit(self.path).query).get("session_id", [None])[0]
@@ -180,11 +193,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         if path not in ("/api/preferences", "/api/skills", "/api/cloud/settings", "/api/cloud/test", "/api/skill-runs",
-                        "/api/assistant-position", "/api/chat/sessions", "/api/chat/turns"):
+                        "/api/assistant-position", "/api/chat/sessions", "/api/chat/turns", '/api/knowledge'):
             self.send_json(404, {"error": "Не найдено"})
             return
         try:
             data = self.read_json()
+            if path == '/api/knowledge':
+                self.send_json(200, Knowledge(self.database, connect).save(data))
+                return
             if path in ("/api/assistant-position", "/api/chat/sessions", "/api/chat/turns"):
                 chat = ChatRunner(self.database, connect)
                 result = chat.position(data) if path.endswith("position") else chat.session(data) if path.endswith("sessions") else chat.start(data)

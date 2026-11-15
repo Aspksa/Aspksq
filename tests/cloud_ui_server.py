@@ -2,6 +2,7 @@
 from pathlib import Path
 import sys
 import time
+import json
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import cloudru
 import server
@@ -24,7 +25,11 @@ def fake_provider(path, api_key, data=None, timeout=40):
     if data and len(data.get('messages',[])) > 1:
         time.sleep(1)
         prefix='Ответ помощника: ' if 'локальном приложении TRACKTOR' in data['messages'][0]['content'] else 'Результат навыка: '
-        return {'choices':[{'message':{'content':prefix+data['messages'][-1]['content']+'\nУчтено сообщений: '+str(len(data['messages']))+'\n<img src=x onerror=alert(1)>'},'finish_reason':'stop'}],
+        sources=[]
+        if 'источники фактов:\n' in data['messages'][0]['content']:
+            sources=json.loads(data['messages'][0]['content'].split('источники фактов:\n',1)[1])
+        facts='\n'.join('['+str(index+1)+'] '+source['excerpt'] for index,source in enumerate(sources))
+        return {'choices':[{'message':{'content':prefix+data['messages'][-1]['content']+'\n'+facts+'\nУчтено сообщений: '+str(len(data['messages']))+'\n<img src=x onerror=alert(1)>'},'finish_reason':'stop'}],
                 'usage':{'prompt_tokens':10,'completion_tokens':20,'total_tokens':30}}
     return {'choices':[{'message':{'content':'Работает. Подключение к выбранной модели проверено.'},'finish_reason':'stop'}]}
 
